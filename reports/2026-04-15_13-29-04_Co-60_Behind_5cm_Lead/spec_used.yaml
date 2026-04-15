@@ -1,0 +1,26 @@
+schema_version: 1.0.0
+case_name: Co-60 Behind 5cm Lead
+analyst: Portfolio Demonstration
+engine: point_kernel
+geometry:
+  type: infinite_slab
+  material: lead
+  thickness_m: 0.05
+source:
+  type: point_isotropic
+  position_m:
+  - 0.0
+  - 0.0
+  - 0.0
+  nuclide: Co-60
+  activity_bq: 1.0e6
+receptor:
+  type: point
+  position_m:
+  - 0.0
+  - 0.0
+  - 1.0
+buildup_material: lead
+report_format:
+- markdown
+- html

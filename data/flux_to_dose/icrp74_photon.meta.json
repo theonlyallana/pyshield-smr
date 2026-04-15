@@ -1,0 +1,8 @@
+{
+  "file": "icrp74_photon.json",
+  "source_label": "Pedagogical reproduction of ICRP 74 photon H*(10) coefficients",
+  "retrieval_url": null,
+  "release_date": "2026-04-14",
+  "notes": "Use the primary ICRP 74 / ICRP 116 tabulations for production work.",
+  "accuracy_target": "within ~5% of ICRP 74 at listed energies"
+}

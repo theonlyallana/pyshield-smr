@@ -1,0 +1,141 @@
+{
+  "_meta": {
+    "description": "Two-term Taylor buildup factor parameters (A, alpha1, alpha2) for four reference materials. Buildup factor B(mu*x) = A * exp(-alpha1 * mu*x) + (1 - A) * exp(-alpha2 * mu*x). Pedagogical values aligned with ANS-6.4.3-style tabulations.",
+    "form": "B = A * exp(+a1*mu_x) + (1 - A) * exp(-a2*mu_x)",
+    "valid_range_mfp": [
+      0.0,
+      20.0
+    ],
+    "sign_convention": "alpha1 enters with positive sign (growth term); alpha2 enters with negative sign (decay term)"
+  },
+  "materials": {
+    "water": {
+      "0.5_MeV": {
+        "A": 10.83,
+        "alpha1": -0.147,
+        "alpha2": 0.0862
+      },
+      "1.0_MeV": {
+        "A": 8.59,
+        "alpha1": -0.089,
+        "alpha2": 0.0764
+      },
+      "2.0_MeV": {
+        "A": 6.8,
+        "alpha1": -0.0505,
+        "alpha2": 0.0637
+      },
+      "3.0_MeV": {
+        "A": 5.9,
+        "alpha1": -0.0309,
+        "alpha2": 0.0598
+      },
+      "5.0_MeV": {
+        "A": 4.9,
+        "alpha1": -0.0089,
+        "alpha2": 0.056
+      },
+      "10.0_MeV": {
+        "A": 3.25,
+        "alpha1": 0.033,
+        "alpha2": 0.052
+      }
+    },
+    "concrete_ordinary": {
+      "0.5_MeV": {
+        "A": 8.0,
+        "alpha1": -0.088,
+        "alpha2": 0.09
+      },
+      "1.0_MeV": {
+        "A": 6.25,
+        "alpha1": -0.058,
+        "alpha2": 0.083
+      },
+      "2.0_MeV": {
+        "A": 5.0,
+        "alpha1": -0.025,
+        "alpha2": 0.071
+      },
+      "3.0_MeV": {
+        "A": 4.25,
+        "alpha1": -0.008,
+        "alpha2": 0.064
+      },
+      "5.0_MeV": {
+        "A": 3.5,
+        "alpha1": 0.012,
+        "alpha2": 0.058
+      },
+      "10.0_MeV": {
+        "A": 2.4,
+        "alpha1": 0.045,
+        "alpha2": 0.051
+      }
+    },
+    "iron": {
+      "0.5_MeV": {
+        "A": 5.0,
+        "alpha1": -0.052,
+        "alpha2": 0.095
+      },
+      "1.0_MeV": {
+        "A": 3.9,
+        "alpha1": -0.025,
+        "alpha2": 0.086
+      },
+      "2.0_MeV": {
+        "A": 3.0,
+        "alpha1": 0.002,
+        "alpha2": 0.072
+      },
+      "3.0_MeV": {
+        "A": 2.55,
+        "alpha1": 0.021,
+        "alpha2": 0.064
+      },
+      "5.0_MeV": {
+        "A": 2.05,
+        "alpha1": 0.048,
+        "alpha2": 0.056
+      },
+      "10.0_MeV": {
+        "A": 1.55,
+        "alpha1": 0.082,
+        "alpha2": 0.049
+      }
+    },
+    "lead": {
+      "0.5_MeV": {
+        "A": 1.7,
+        "alpha1": 0.029,
+        "alpha2": 0.136
+      },
+      "1.0_MeV": {
+        "A": 1.68,
+        "alpha1": 0.052,
+        "alpha2": 0.117
+      },
+      "2.0_MeV": {
+        "A": 1.45,
+        "alpha1": 0.087,
+        "alpha2": 0.098
+      },
+      "3.0_MeV": {
+        "A": 1.3,
+        "alpha1": 0.112,
+        "alpha2": 0.085
+      },
+      "5.0_MeV": {
+        "A": 1.18,
+        "alpha1": 0.146,
+        "alpha2": 0.071
+      },
+      "10.0_MeV": {
+        "A": 1.05,
+        "alpha1": 0.193,
+        "alpha2": 0.058
+      }
+    }
+  }
+}

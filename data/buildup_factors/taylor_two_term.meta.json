@@ -1,0 +1,8 @@
+{
+  "file": "taylor_two_term.json",
+  "source_label": "PyShield-SMR pedagogical Taylor two-term buildup parameters",
+  "retrieval_url": null,
+  "release_date": "2026-04-14",
+  "notes": "Two-term Taylor form. Pedagogical values aligned with ANS-6.4.3-style tabulations; not a primary source. For safety-case work use Geometric Progression (GP) form from ANSI/ANS-6.4.3 directly, or compute buildup via Monte Carlo.",
+  "accuracy_target": "within ~10% at 1-10 mean free paths"
+}

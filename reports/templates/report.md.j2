@@ -1,0 +1,69 @@
+# Analysis report — {{ case_name }}
+
+Generated at {{ generated_at }} by PyShield-SMR v{{ version }}.
+
+## 1. Inputs
+
+- Analyst: {{ analyst }}
+- Case: {{ case_name }}
+- Spec file: `{{ spec_path }}`
+- Engine: **{{ engine }}**
+- Buildup material (point kernel): {{ buildup_material or "n/a" }}
+
+## 2. Method summary
+
+{{ method_summary }}
+
+## 3. Results
+
+{% if dose_rate_sv_per_h is not none %}
+Maximum dose rate at receptor: **{{ "%.3e"|format(dose_rate_sv_per_h) }} Sv/h**
+({{ "%.2f"|format(dose_rate_sv_per_h * 1e6) }} µSv/h).
+
+Radiological zone at this dose rate: **{{ zone }}**.
+{% endif %}
+
+{% if transmitted_weight is not none %}
+Transmitted photon fraction: **{{ "%.3e"|format(transmitted_weight) }}**
+(relative error: {{ "%.2f"|format(relative_error * 100) }} %).
+{% endif %}
+
+## 4. Uncertainty
+
+{% if uq %}
+Monte Carlo UQ over {{ uq.n }} Latin-hypercube samples:
+
+- mean:   {{ "%.3e"|format(uq.mean) }}
+- median: {{ "%.3e"|format(uq.median) }}
+- 5%–95%: {{ "%.3e"|format(uq.p5) }} – {{ "%.3e"|format(uq.p95) }}
+- std:    {{ "%.3e"|format(uq.std) }}
+{% else %}
+No UQ performed — opt-out reason: **{{ uq_skip_reason or "not declared" }}**.
+{% endif %}
+
+## 5. Assumptions and limits of validity
+
+{% for a in assumptions %}
+- {{ a }}
+{% endfor %}
+
+## 6. Quality manifest
+
+- PyShield-SMR version: **{{ version }}**
+- Platform: {{ platform }}
+- Runtime: {{ runtime_seconds|round(3) }} s
+- Data hashes:
+{% for name, digest in data_hashes.items() %}
+  - `{{ name }}` : `{{ digest[:12] }}…`
+{% endfor %}
+
+{% if warnings %}
+### Warnings
+{% for w in warnings %}
+- {{ w }}
+{% endfor %}
+{% endif %}
+
+---
+
+_Report produced by PyShield-SMR. Not for safety-case use._

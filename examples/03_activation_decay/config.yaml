@@ -1,0 +1,75 @@
+# PyShield-SMR Example: Activation Product Decay Chain
+#
+# This example demonstrates neutron activation and decay modeling:
+#
+#   1. Compute activation product inventory after irradiation
+#   2. Track decay during cooldown period
+#   3. Compute resulting photon source term from gamma lines
+#   4. Assess dose rate at component surface
+#
+# Physics: When a stable target (e.g., Fe-56 → Fe-57) is irradiated by neutrons,
+# it becomes radioactive. The activity builds up as: A(t) = σφ × N × (1 - exp(-λt))
+# during irradiation. After irradiation stops, the product decays as A(t) = A₀ exp(-λt).
+#
+# For multi-step chains (A → B → C), we solve the Bateman equations:
+#   dN_i/dt = λ_{i-1}N_{i-1} - λ_i N_i
+# using matrix exponential: N(t) = exp(A·t) × N(0)
+#
+# This example uses the simplified single-product case for clarity.
+
+schema_version: "1.0.0"
+
+case_name: "Co-60 Buildup and Decay in Steel Target"
+analyst: "Portfolio Demonstration"
+
+# This example doesn't run immediate transport; it's a post-processing exercise.
+# In a full workflow, activation would compute source inventory, then we'd run
+# transport with that inventory. For now, we manually specify the activated inventory.
+engine: point_kernel
+
+geometry:
+  type: infinite_slab
+  material: iron  # Steel is mostly iron
+  thickness_m: 0.05
+
+# Source: We'll use Co-60 as if it were produced by Fe-59(n,γ)Co-60 and decayed
+# to Co-60. In a real activation analysis, this inventory is computed.
+source:
+  type: point_isotropic
+  position_m: [0.0, 0.0, -0.1]
+  nuclide: Co-60
+  activity_bq: 1.0e5  # 100 kBq after 7 days cooldown (typical)
+
+receptor:
+  type: point
+  position_m: [0.0, 0.0, 0.1]
+
+buildup_material: iron
+
+# Activation simulation (not yet integrated into runner; placeholder)
+# activation:
+#   target_nuclide: Fe-56
+#   target_atoms: 1.0e24  # Typical for small steel sample
+#   neutron_flux_cm2_s: 1.0e13  # cm⁻², s⁻¹ (typical for PWR core)
+#   irradiation_time_s: 86400  # 1 day irradiation
+#   product_nuclide: Co-60
+#   activation_xs_barn: 10.0  # (n,γ) cross section; typical ~1-100 barn
+#   cooldown_time_s: 604800  # 7 days decay before measurement
+#
+# Expected result (from Bateman solver):
+#   After 1 day irradiation: Co-60 builds up to ~10⁸ Bq
+#   After 7 days cooldown: Decays by factor exp(-λ×t) ≈ 0.0001 (Co-60 T₁/₂ = 5.27 yr)
+#   Final: ~10⁴ Bq
+
+report_format:
+  - markdown
+
+# Notes: This example demonstrates the full nuclear data chain:
+#   1. Cross-section lookup (from ENDF/B data)
+#   2. Decay constant (from ICRP nuclide decay library)
+#   3. Gamma-line emission (from gamma-line library)
+#   4. Dose conversion (from ICRP-74 flux-to-dose coefficients)
+#
+# In a production SMR analysis, this would be fully automated: specify
+# target and irradiation conditions, get dose rate at any point in the
+# facility over time.

@@ -1,0 +1,80 @@
+# PyShield-SMR Example: Monte Carlo Photon Transmission
+#
+# This example demonstrates Monte Carlo (analog) photon transport through shielding:
+#
+#   1. Sample photons from a point source (monoenergetic)
+#   2. For each photon: sample free-flight distance → collision → scatter or absorption
+#   3. Track transmitted (escaped) weight and energy spectrum
+#   4. Report transmission probability and relative statistical error
+#
+# Physics: Analog Monte Carlo directly samples the transport equations without
+# variance reduction. For this simple problem, it's slower than point-kernel,
+# but it demonstrates the physics clearly and provides a validation benchmark
+# for point-kernel approximations.
+#
+# The Monte Carlo method computes:
+#   T = (weight transmitted) / (total weight emitted)
+#   rel_err ≈ 1/√N_histories
+#
+# By comparing MC and point-kernel results on this problem, we validate that
+# the point-kernel buildup factor correctly predicts total dose (uncollided + scattered).
+
+schema_version: "1.0.0"
+
+case_name: "Monoenergetic Photon Transmission Through Lead"
+analyst: "Portfolio Demonstration"
+
+engine: monte_carlo
+
+geometry:
+  type: infinite_slab
+  material: lead
+  thickness_m: 0.10  # 10 cm lead (thicker than example 1 to show attenuation)
+
+source:
+  type: custom_spectrum
+  # For Monte Carlo, we often run mono-energetic (single photon energy)
+  # to reduce variance and enable direct comparison with point-kernel.
+  position_m: [0.0, 0.0, 0.0]
+  energies_MeV:
+    - 1.0  # 1 MeV photon
+  intensities_per_s:
+    - 1.0e6  # 1 million photons/second
+
+receptor:
+  type: point
+  position_m: [0.0, 0.0, 0.15]  # 15 cm from source (after slab)
+
+# Monte Carlo engine configuration
+monte_carlo:
+  # Number of histories to run
+  n_histories: 1000000  # 1M histories (adjust for desired precision)
+
+  # Variance reduction techniques
+  variance_reduction:
+    # Implicit capture: reduce weight by (1 - P_absorption) at each collision
+    # instead of explicitly sampling absorption. Reduces variance without bias.
+    implicit_capture: true
+
+    # Russian roulette + splitting: particles below weight w_low are eliminated
+    # with probability (1 - weight/w_low); those above w_high are split.
+    # Maintains unbiased estimator while focusing computation on important events.
+    # roulette_split:
+    #   w_low: 0.01
+    #   w_high: 10.0
+
+  # Parallel execution (optional)
+  parallel:
+    enabled: true
+    n_workers: 4  # Run on 4 cores
+
+# Note: For validation, run with point_kernel engine and buildup_material: lead,
+# then compare dose rates. Both should agree within ~5-10% on this geometry.
+# Differences arise from:
+#   - Point-kernel buildup factor uncertainty (~5-10% at mid-optical depths)
+#   - Monte Carlo statistical error (σ ~ 1/√N)
+#   - Geometry approximations (point-kernel assumes infinite slab; MC enforces it)
+
+report_format:
+  - markdown
+  - html

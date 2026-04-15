@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PyShield-SMR report — {{ case_name }}</title>
+<style>
+  body { font-family: ui-sans-serif, system-ui, sans-serif; max-width: 800px; margin: 2rem auto; color:#222; }
+  h1 { border-bottom: 2px solid #444; padding-bottom: 0.25rem; }
+  h2 { margin-top: 2rem; border-bottom: 1px solid #ccc; padding-bottom: 0.2rem; }
+  code, pre { background: #f5f5f5; padding: 0.1rem 0.3rem; border-radius: 4px; }
+  .callout { background:#eef; border-left: 4px solid #55c; padding: 0.5rem 1rem; margin: 1rem 0; }
+  table { border-collapse: collapse; margin: 1rem 0; }
+  th, td { padding: 0.25rem 0.6rem; border-bottom: 1px solid #ccc; text-align:left; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<h1>Analysis report — {{ case_name }}</h1>
+<p>Generated at {{ generated_at }} by PyShield-SMR v{{ version }}.</p>
+
+<h2>1. Inputs</h2>
+<ul>
+  <li>Analyst: {{ analyst }}</li>
+  <li>Case: {{ case_name }}</li>
+  <li>Spec file: <code>{{ spec_path }}</code></li>
+  <li>Engine: <strong>{{ engine }}</strong></li>
+  <li>Buildup material (point kernel): {{ buildup_material or "n/a" }}</li>
+</ul>
+
+<h2>2. Method summary</h2>
+<p>{{ method_summary }}</p>
+
+<h2>3. Results</h2>
+{% if dose_rate_sv_per_h is not none %}
+<div class="callout">
+  Maximum dose rate at receptor: <strong>{{ "%.3e"|format(dose_rate_sv_per_h) }} Sv/h</strong>
+  ({{ "%.2f"|format(dose_rate_sv_per_h * 1e6) }} µSv/h). Radiological zone: <strong>{{ zone }}</strong>.
+</div>
+{% endif %}
+{% if transmitted_weight is not none %}
+<p>Transmitted photon fraction: <strong>{{ "%.3e"|format(transmitted_weight) }}</strong>
+(relative error: {{ "%.2f"|format(relative_error * 100) }} %).</p>
+{% endif %}
+
+<h2>4. Uncertainty</h2>
+{% if uq %}
+<table>
+  <tr><th>Metric</th><th>Value</th></tr>
+  <tr><td>mean</td><td>{{ "%.3e"|format(uq.mean) }}</td></tr>
+  <tr><td>median</td><td>{{ "%.3e"|format(uq.median) }}</td></tr>
+  <tr><td>5%</td><td>{{ "%.3e"|format(uq.p5) }}</td></tr>
+  <tr><td>95%</td><td>{{ "%.3e"|format(uq.p95) }}</td></tr>
+  <tr><td>std</td><td>{{ "%.3e"|format(uq.std) }}</td></tr>
+  <tr><td>samples</td><td>{{ uq.n }}</td></tr>
+</table>
+{% else %}
+<p>No UQ performed — opt-out reason: <em>{{ uq_skip_reason or "not declared" }}</em>.</p>
+{% endif %}
+
+<h2>5. Assumptions and limits of validity</h2>
+<ul>
+{% for a in assumptions %}
+  <li>{{ a }}</li>
+{% endfor %}
+</ul>
+
+<h2>6. Quality manifest</h2>
+<ul>
+  <li>PyShield-SMR version: <strong>{{ version }}</strong></li>
+  <li>Platform: {{ platform }}</li>
+  <li>Runtime: {{ runtime_seconds|round(3) }} s</li>
+</ul>
+<table>
+  <tr><th>Data file</th><th>SHA-256 (first 12)</th></tr>
+{% for name, digest in data_hashes.items() %}
+  <tr><td><code>{{ name }}</code></td><td><code>{{ digest[:12] }}…</code></td></tr>
+{% endfor %}
+</table>
+
+{% if warnings %}
+<h3>Warnings</h3>
+<ul>
+{% for w in warnings %}
+<li>{{ w }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<hr>
+<p><em>Report produced by PyShield-SMR. Not for safety-case use.</em></p>
+</body>
+</html>

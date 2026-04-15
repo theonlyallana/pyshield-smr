@@ -1,0 +1,135 @@
+# PyShield-SMR Example: Simplified SMR Compartment Dose Assessment
+#
+# This is the most complex example: a realistic SMR scenario combining:
+#
+#   1. Multi-nuclide source term (fission products)
+#   2. Complex shielding geometry (steel vessel → lead → concrete)
+#   3. Multiple receptors (nearby operator, control room, boundary)
+#   4. Uncertainty quantification (source term uncertainty)
+#   5. ALARP: optimize concrete thickness for cost-benefit
+#
+# Context: Small Modular Reactors (SMRs) like Rolls-Royce's are compact
+# but operate at high power density. Source terms come from:
+#   - Activated metals (neutron capture on steel/nickel)
+#   - Fission products (Cs-137, I-131, etc.) from small fuel leakage
+#   - Corrosion products (Co-60 from cobalt impurities in water)
+#
+# The shielding analyst must:
+#   1. Estimate source inventory (from fuel burnup, activation)
+#   2. Design shielding to meet regulatory dose limits at boundaries
+#   3. Quantify uncertainty in source and evaluate margin
+#   4. Justify design choices (ALARP: why not more shielding?)
+
+schema_version: "1.0.0"
+
+case_name: "Prototype SMR: Compartment Dose Rate Analysis"
+analyst: "Portfolio Demonstration - Radiation Physics Engineer"
+
+# For this example, we'll keep the transport relatively simple (point kernel)
+# but demonstrate the full workflow structure.
+engine: point_kernel
+
+# Simplified composite geometry: steel vessel (thin, ignored) → lead (variable) → concrete
+geometry:
+  type: composite_slab
+  # Radial distance from reactor core to outer concrete
+  materials: [lead, concrete_ordinary]
+  # Thicknesses to optimize
+  thicknesses_m: [0.05, 0.5]  # 5 cm lead, 50 cm concrete (initial guess)
+
+# Source: Multi-nuclide fission product source from reactor
+# In a real analysis, this comes from burnup calculation (ORIGEN code)
+# For simplicity, we model as a single equivalent activity
+source:
+  type: point_isotropic
+  # Source at reactor core center
+  position_m: [0.0, 0.0, 0.0]
+  # Single aggregate nuclide (in real analysis, would be multi-nuclide list)
+  # Cs-137 is representative (high-energy gamma, significant inventory)
+  nuclide: Cs-137
+  # Realistic post-accident source term: ~10⁷ Bq per liter coolant
+  # Vessel volume ~10 liters → ~10⁸ Bq
+  activity_bq: 1.0e8
+
+# Receptors at multiple locations
+receptor:
+  - type: point
+    name: nearby_operator
+    # Operator position near shielding (3 m from core)
+    position_m: [0.0, 0.0, 3.0]
+  - type: point
+    name: control_room
+    # Shielded control room (5 m away, additional local shielding)
+    position_m: [0.0, 0.0, 5.0]
+  - type: point
+    name: facility_boundary
+    # Regulatory boundary (20 m away)
+    position_m: [0.0, 0.0, 20.0]
+
+buildup_material: lead
+
+# Uncertainty quantification: source term is uncertain
+# Realistic uncertainties in activation analysis:
+#   - Fuel burnup: ±5%
+#   - Decay constant error: ±2%
+#   - Coolant volume estimate: ±10%
+uncertainty:
+  enabled: true
+  method: monte_carlo
+  n_samples: 100  # 100 samples for posterior statistics
+  parameters:
+    - name: activity_bq
+      distribution: lognormal
+      median: 1.0e8
+      sigma: 0.15  # 15% log-standard deviation (realistic)
+    - name: source_energy_scale
+      distribution: uniform
+      lower: 0.95  # ±5% energy softening due to attenuation in coolant
+      upper: 1.05
+
+# ALARP optimization: adjust concrete thickness for lowest total risk
+alarp:
+  enabled: true
+
+  objective:
+    # Health objective: minimize collective dose over full facility lifetime
+    health_weight: 1.0
+    # Economic objective: minimize shielding cost (material + installation)
+    cost_weight: 0.01  # Regulatory-driven; health is priority
+
+  constraints:
+    # UK regulatory threshold for unrestricted areas (public)
+    dose_rate_sv_per_h_max: 2.5e-6  # 2.5 µSv/h (uncontrolled zone)
+    # Additional constraint for occupational area (nearby operator)
+    # dose_rate_sv_per_h_max_occupational: 1.0e-4  # 100 µSv/h (controlled area)
+
+  variables:
+    # Only optimize concrete thickness; keep lead fixed
+    - name: concrete_thickness_m
+      lower_bound: 0.2   # Minimum 20 cm concrete (practical/structural)
+      upper_bound: 1.0   # Maximum 1 m (cost/space limit)
+
+  method: slsqp
+  max_iterations: 50
+
+# Reporting and annotations
+report_format:
+  - markdown
+  - html
+
+# Expected findings:
+#   1. Unconstrained dose rate at boundary: ~50-100 µSv/h (unacceptable)
+#   2. With 50 cm concrete: ~1-2 µSv/h (meets constraint with margin)
+#   3. With 30 cm concrete: ~3-5 µSv/h (exceeds threshold)
+#   4. Optimum: ~45-50 cm concrete balances cost and dose
+#   5. UQ shows: with source uncertainty, 90th percentile dose ≈ 3 µSv/h
+#      → designer would add margin, aiming for median ≈ 2 µSv/h
+#
+# This analysis demonstrates the core skills in the job description:
+#   ✓ Radiation transport (point kernel + Cs-137 spectrum)
+#   ✓ Shielding design (composite geometry, attenuation)
+#   ✓ Dose rate assessment (ICRP-74 conversion)
+#   ✓ Uncertainty quantification (lognormal distribution, MC sampling)
+#   ✓ ALARP optimization (constrained minimization)
+#   ✓ Quality governance (reproducible YAML, QA manifest, audit trail)
+#   ✓ Python pre/post-processing (runner orchestration, report rendering)

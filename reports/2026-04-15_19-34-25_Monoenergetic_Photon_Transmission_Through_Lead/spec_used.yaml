@@ -1,0 +1,34 @@
+schema_version: 1.0.0
+case_name: Monoenergetic Photon Transmission Through Lead
+analyst: Portfolio Demonstration
+engine: monte_carlo
+geometry:
+  type: infinite_slab
+  material: lead
+  thickness_m: 0.1
+source:
+  type: custom_spectrum
+  position_m:
+  - 0.0
+  - 0.0
+  - 0.0
+  energies_MeV:
+  - 1.0
+  intensities_per_s:
+  - 1000000.0
+receptor:
+  type: point
+  position_m:
+  - 0.0
+  - 0.0
+  - 0.15
+monte_carlo:
+  n_histories: 1000000
+  variance_reduction:
+    implicit_capture: true
+  parallel:
+    enabled: true
+    n_workers: 4
+report_format:
+- markdown
+- html

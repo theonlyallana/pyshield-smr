@@ -1,0 +1,42 @@
+# Byte-compiled / optimised / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# Caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Generated reports — keep templates, drop outputs
+reports/latest/
+reports/**/report.html
+reports/**/report.md
+reports/**/tallies.json
+reports/**/qa_manifest.json
+reports/**/uq_summary.json
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Editor
+.idea/
+.vscode/
+*.swp
+.DS_Store

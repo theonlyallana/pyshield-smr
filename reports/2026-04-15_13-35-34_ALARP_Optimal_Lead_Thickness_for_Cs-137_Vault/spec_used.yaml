@@ -1,0 +1,28 @@
+schema_version: 1.0.0
+case_name: 'ALARP: Optimal Lead Thickness for Cs-137 Vault'
+analyst: Portfolio Demonstration
+engine: point_kernel
+geometry:
+  type: composite_slab
+  materials:
+  - lead
+  thicknesses_m:
+  - 0.05
+source:
+  type: point_isotropic
+  position_m:
+  - 0.0
+  - 0.0
+  - 0.0
+  nuclide: Cs-137
+  activity_bq: 10000000.0
+receptor:
+  type: point
+  position_m:
+  - 0.0
+  - 0.0
+  - 1.0
+buildup_material: lead
+report_format:
+- markdown
+- html

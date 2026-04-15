@@ -1,0 +1,402 @@
+# Getting Started with PyShield-SMR
+
+PyShield-SMR is a comprehensive radiation shielding analysis framework designed to demonstrate radiation physics and nuclear engineering principles for Small Modular Reactors.
+
+## Quick Start (5 minutes)
+
+### Installation
+
+```bash
+# Clone or navigate to the project directory
+cd pyshield-smr
+
+# Install in development mode (includes test dependencies)
+pip install -e ".[dev]"
+
+# Verify installation
+python -m pyshield_smr.cli.main --help
+```
+
+### Run Your First Analysis
+
+```bash
+# Execute the simplest example: Co-60 behind 5 cm lead
+python -m pyshield_smr.cli.main run examples/01_point_kernel_shielding/config.yaml
+
+# Output will be written to: reports/TIMESTAMP_CASENAME/
+# - report.md (human-readable summary)
+# - report.html (styled HTML)
+# - qa_manifest.json (governance metadata)
+```
+
+### View Results
+
+```bash
+# Open the report in your browser
+open reports/*/report.html
+
+# Or read the Markdown version
+cat reports/*/report.md
+```
+
+## Project Structure
+
+```
+pyshield-smr/
+├── pyshield_smr/              # Main Python package
+│   ├── physics/               # Radiation physics (constants, materials, attenuation, dose)
+│   ├── transport/             # Photon transport (geometry, Monte Carlo, tallies)
+│   ├── shielding/             # Shielding calculations (point kernel, dose rate)
+│   ├── sources/               # Source terms (nuclide inventory → photon spectrum)
+│   ├── activation/            # Activation & decay (Bateman equations, burnup)
+│   ├── uq/                    # Uncertainty quantification (Latin hypercube, Morris screening)
+│   ├── alarp/                 # ALARP optimization (cost-benefit shielding design)
+│   ├── workflow/              # Orchestration (schema, runner, QA governance)
+│   ├── cli/                   # Command-line interface
+│   ├── hpc/                   # HPC support (parallel execution, SLURM/PBS)
+│   └── io/                    # I/O utilities (YAML, reporting, hashing)
+│
+├── data/                      # Nuclear data (vendored for reproducibility)
+│   ├── cross_sections/        # Photon mass attenuation (NIST XCOM)
+│   ├── buildup_factors/       # Taylor two-term buildup parameters
+│   ├── flux_to_dose/          # ICRP-74 H*(10) dose conversion factors
+│   └── decay_chains/          # Nuclide half-lives and gamma lines
+│
+├── examples/                  # Five worked examples
+│   ├── 01_point_kernel_shielding/
+│   ├── 02_monte_carlo_transmission/
+│   ├── 03_activation_decay/
+│   ├── 04_alarp_optimization/
+│   └── 05_smr_compartment/
+│
+├── tests/                     # Unit and integration tests
+│   ├── unit/                  # Fast, isolated tests of modules
+│   └── integration/           # End-to-end workflows
+│
+├── docs/                      # Theory and guide documentation
+│   ├── theory/                # Physics fundamentals (7 documents)
+│   └── guides/                # How-to guides (4 documents)
+│
+├── reports/                   # Output directory for analysis results
+└── tasks/                     # Governance infrastructure
+    ├── PROCESS_ARCHITECTURE.md
+    ├── audit_process.py
+    ├── agents/                # Multi-agent specialist system
+    └── memory/                # Learning and decision history
+```
+
+## Key Concepts
+
+### Radiation Transport
+
+The framework implements **photon Monte Carlo transport** with variance reduction:
+
+- **Analog transport**: Direct sampling of transport equation (exact but slow)
+- **Non-analog techniques**:
+  - *Implicit capture*: Reduce particle weight by absorption probability (variance reduction)
+  - *Russian roulette + splitting*: Eliminate/multiply particles based on weight
+
+Example: A 1 MeV photon traveling through lead is sampled via:
+1. Free-flight distance (exponential with mean free path)
+2. Collision site within geometry
+3. Scattering (Klein-Nishina formula) or absorption
+
+### Dose Rate Assessment
+
+Two methods are provided:
+
+1. **Point Kernel** (fast): Analytical formula accounting for buildup:
+   ```
+   dose_rate = ∫ [φ₀(r,E) × B(τ,E)] × h(E) dE
+   ```
+   where φ₀ = uncollided fluence, B = buildup factor, h = dose conversion
+
+2. **Monte Carlo** (slow but general): Sample each photon history explicitly
+
+### ALARP (As Low As Reasonably Practicable)
+
+The framework solves constrained optimization:
+```
+Minimize:  J(t) = w₁×annual_dose + w₂×shielding_mass
+Subject to: dose_rate(t) ≤ threshold
+Variables: t = shielding thicknesses
+```
+
+This demonstrates that optimal design is a **trade-off surface**, not binary (safe/unsafe).
+
+### Uncertainty Quantification
+
+Two methods:
+
+1. **Latin Hypercube Sampling**: Efficient stratified sampling for propagating uncertainty
+2. **Morris Elementary Effects**: Fast global screening of parameter importance
+
+Example: If source activity is uncertain by ±15%, how does dose rate uncertainty compare?
+
+## Five Example Analyses
+
+Each example builds complexity:
+
+| Example | Focus | Features |
+|---------|-------|----------|
+| 01 | Basic point-kernel | Single material, point source, single receptor |
+| 02 | Monte Carlo | Photon transport physics, statistical convergence |
+| 03 | Activation/decay | Bateman equations, multi-nuclide chains |
+| 04 | ALARP | Constrained optimization, cost-benefit analysis |
+| 05 | SMR compartment | Multi-nuclide source, composite shielding, UQ+ALARP |
+
+Run any example:
+```bash
+python -m pyshield_smr.cli.main run examples/01_point_kernel_shielding/config.yaml
+python -m pyshield_smr.cli.main run examples/02_monte_carlo_transmission/config.yaml
+# etc.
+```
+
+## Common Workflows
+
+### Workflow 1: Quick Dose-Rate Check
+
+```bash
+# Edit examples/01_point_kernel_shielding/config.yaml:
+# - Change activity_bq, thickness_m, receptor.position_m to your values
+# - Set engine: point_kernel (fast, 1 second)
+
+python -m pyshield_smr.cli.main run examples/01_point_kernel_shielding/config.yaml
+```
+
+Expected output: `dose_rate_sv_per_h` and assigned zone in report.md
+
+### Workflow 2: Validate Point-Kernel vs. Monte Carlo
+
+```bash
+# Run same geometry with both engines to compare:
+
+# Point kernel (seconds)
+python -m pyshield_smr.cli.main run examples/01_point_kernel_shielding/config.yaml
+
+# Monte Carlo (minutes)
+python -m pyshield_smr.cli.main run examples/02_monte_carlo_transmission/config.yaml
+
+# Compare: both should give similar dose rates (within 5-10%)
+# Differences arise from buildup factor uncertainty and statistical noise
+```
+
+### Workflow 3: Uncertainty Quantification
+
+Enable `uncertainty` section in your YAML spec:
+```yaml
+uncertainty:
+  enabled: true
+  method: monte_carlo
+  n_samples: 100
+  parameters:
+    - name: activity_bq
+      distribution: lognormal
+      median: 1.0e6
+      sigma: 0.15  # 15% uncertainty
+```
+
+Report will include: mean, median, 5th/95th percentiles of dose rate.
+
+### Workflow 4: ALARP Shielding Design
+
+Enable `alarp` section:
+```yaml
+alarp:
+  enabled: true
+  objective:
+    health_weight: 1.0
+    cost_weight: 0.01
+  constraints:
+    dose_rate_sv_per_h_max: 2.5e-6
+  variables:
+    - name: thickness_m
+      lower_bound: 0.01
+      upper_bound: 0.50
+```
+
+Report will show: optimal thickness, dose rate at optimum, sensitivity analysis.
+
+## Quality Assurance
+
+Every analysis generates a **QA manifest** (qa_manifest.json):
+
+```json
+{
+  "timestamp": "2026-04-14T14:32:15Z",
+  "runtime_seconds": 2.34,
+  "code_version": "commit abc123",
+  "platform": {
+    "python_version": "3.11.2",
+    "os": "Linux"
+  },
+  "data_files": {
+    "data/cross_sections/photon_mass_attenuation.json": "abc123def456..."
+  },
+  "warnings": [],
+  "analysis_metadata": {
+    "case_name": "Co-60 Behind 5cm Lead",
+    "dose_rate_sv_per_h": 1.234e-6,
+    "zone": "supervised"
+  }
+}
+```
+
+This manifest ensures **reproducibility**: months later, you can verify that:
+- Same code version ran the analysis
+- Same data files (SHA-256 hash match)
+- Same platform (Python 3.11, Linux)
+- No warnings at runtime
+
+## Testing
+
+```bash
+# Run all tests
+pytest tests/ -v
+
+# Run unit tests only (fast, <10 seconds)
+pytest tests/unit/ -v
+
+# Run integration tests (slower, exercise full workflows)
+pytest tests/integration/ -v
+
+# With coverage
+pytest tests/ --cov=pyshield_smr --cov-report=html
+
+# Check code quality
+ruff check pyshield_smr/
+ruff format --check pyshield_smr/
+mypy pyshield_smr/ --no-error-summary
+```
+
+## Validation: Government Audit
+
+Run the automated governance audit:
+
+```bash
+# Check all 12 governance criteria
+python tasks/audit_process.py --verbose
+
+# Output: PASS/FAIL for each check
+# - Required files present (AGENTS.md, RUNBOOK.md, etc.)
+# - Architecture links correct
+# - Physics changelog non-empty
+# - Tests discoverable
+# - Data files hashed (QA manifest)
+# - Process state up to date
+```
+
+## HPC Cluster Execution
+
+Generate SLURM job script for parallel execution:
+
+```bash
+python -m pyshield_smr.cli.main emit-slurm \
+  examples/02_monte_carlo_transmission/config.yaml \
+  job.slurm \
+  --nodes 4 \
+  --tasks-per-node 8 \
+  --time 02:00:00
+
+# Review and submit
+cat job.slurm
+sbatch job.slurm
+```
+
+The runner automatically distributes Monte Carlo histories across workers with independent RNG streams (NumPy SeedSequence).
+
+## Documentation
+
+Read the comprehensive docs:
+
+### Theory Documents (7)
+- `docs/theory/01_transport_theory.md`: Boltzmann equation, Monte Carlo basics
+- `docs/theory/02_point_kernel.md`: Buildup factor theory and limitations
+- `docs/theory/03_monte_carlo.md`: Analog and non-analog transport algorithms
+- `docs/theory/04_source_terms.md`: Fission products, activation chains
+- `docs/theory/05_activation_and_decay.md`: Bateman equations, matrix exponential
+- `docs/theory/06_uq.md`: Uncertainty sources and propagation methods
+- `docs/theory/07_alarp.md`: Regulatory framework and optimization formulation
+
+### Guide Documents (4)
+- `docs/guides/GETTING_STARTED.md` (this file)
+- `docs/guides/QA.md`: Quality assurance, audits, governance
+- `docs/guides/HPC.md`: Running on compute clusters
+- `docs/guides/MCNP_INTEROP.md`: Using PyShield alongside MCNP
+
+### Design Documents
+- `AGENTS.md`: Multi-agent specialist system for collaborative development
+- `RUNBOOK.md`: Standard commands and workflows
+- `ARCHITECTURE.md`: Layered design, extension points, invariants
+
+## Troubleshooting
+
+### Error: "Spec file not found"
+```bash
+# Check file exists and is readable
+ls -la examples/01_point_kernel_shielding/config.yaml
+
+# Use absolute path if relative path fails
+python -m pyshield_smr.cli.main run $(pwd)/examples/01_point_kernel_shielding/config.yaml
+```
+
+### Error: "Spec validation failed"
+```bash
+# Validate spec before running
+python -m pyshield_smr.cli.main validate examples/01_point_kernel_shielding/config.yaml
+
+# See detailed error messages, check YAML syntax
+cat examples/01_point_kernel_shielding/config.yaml | head -20
+```
+
+### Error: "Material not found: lead"
+Ensure data file exists:
+```bash
+ls data/cross_sections/photon_mass_attenuation.json
+
+# If missing, regenerate from source or check git
+git status data/
+```
+
+### Monte Carlo too slow
+Reduce n_histories or use implicit capture:
+```yaml
+monte_carlo:
+  n_histories: 100000  # Was 1000000
+  variance_reduction:
+    implicit_capture: true
+    roulette_split:
+      w_low: 0.01
+      w_high: 10.0
+```
+
+### Results disagree with literature/MCNP
+Common causes:
+1. **Energy group**: Are you using same energy as reference?
+2. **Buildup material**: Point-kernel assumes single material; MC can handle layers
+3. **Geometry**: Point-kernel uses slab approximation; real geometry is complex
+4. **Statistics**: MC result within ±1σ of reference is acceptable
+
+See `docs/theory/03_monte_carlo.md` for detailed comparison protocol.
+
+## Next Steps
+
+1. **Run all five examples**: Understand the breadth of the framework
+2. **Read theory docs**: Understand the physics for interviews
+3. **Create your own spec**: Design a custom analysis (lead thickness study, dose vs. distance, etc.)
+4. **Run tests**: Verify code quality and correctness
+5. **Check governance**: Run `audit_process.py` to ensure reproducibility
+
+## Contact & Feedback
+
+For questions or issues:
+1. Check `docs/guides/QA.md` (governance structure)
+2. Review relevant theory document (`docs/theory/XX_*.md`)
+3. Inspect source code docstrings (comprehensive)
+4. Check example YAML specs (annotated with physics)
+
+---
+
+**PyShield-SMR v0.1.0** — Portfolio project demonstrating Radiation Physics & Shielding engineering for Rolls-Royce SMR role.
+
+Designed to showcase: Transport theory, shielding design, dose-rate assessment, uncertainty quantification, ALARP optimization, Python workflows, nuclear data handling, HPC integration, and governance/reproducibility practices.

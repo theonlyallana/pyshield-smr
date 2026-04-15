@@ -1,0 +1,63 @@
+# PyShield-SMR Integration Regression Values
+#
+# Each entry defines an expected result for a specific example config.
+# Tests compare the runner's output against these values within the stated
+# tolerance. Update this file (with a PHYSICS_CHANGELOG entry) whenever a
+# deliberate physics change alters a result.
+#
+# Generated: 2026-04-15
+# Code version: v0.1.1 (post buildup sign-fix + YAML loader fix + runner position fix)
+# Method: point_kernel for all cases; ALARP/UQ disabled for determinism.
+#
+# Tolerance guidance:
+#   point-kernel:  ±5% (buildup factor uncertainty + interpolation)
+#   activation:    ±5% (same physics chain, same data)
+#   multi-layer:   ±10% (two-material buildup approximation)
+#   MC (future):   ±10% (statistical noise on top of buildup uncertainty)
+
+cases:
+
+  point_kernel_co60_lead_5cm:
+    description: "Co-60 1 MBq at origin; 5 cm Pb slab; receptor at 1 m"
+    spec: "examples/01_point_kernel_shielding/config.yaml"
+    engine: point_kernel
+    expected_dose_rate_sv_per_h: 1.72e-8
+    tolerance_percent: 5.0
+    zone: uncontrolled
+    notes: >
+      Co-60 two-line spectrum (1.173 MeV, 1.332 MeV). Optical depth ≈ 3.6 mfp.
+      Buildup factor B ≈ 1.6 (lead, 1 MeV, τ=3.6). Post v0.1.1 fix.
+
+  point_kernel_co60_iron_5cm:
+    description: "Co-60 100 kBq at -0.1 m; 5 cm Fe slab; receptor at 0.1 m"
+    spec: "examples/03_activation_decay/config.yaml"
+    engine: point_kernel
+    expected_dose_rate_sv_per_h: 1.38e-7
+    tolerance_percent: 5.0
+    zone: uncontrolled
+    notes: >
+      Demonstrates activation-product source term. Geometry: source at z=-0.1 m,
+      receptor at z=+0.1 m (0.2 m source-to-receptor). Iron buildup factors applied.
+
+  point_kernel_cs137_lead_5cm:
+    description: "Cs-137 10 MBq at origin; 5 cm Pb slab; receptor at 1 m"
+    spec: "examples/04_alarp_optimization/config.yaml"
+    engine: point_kernel
+    expected_dose_rate_sv_per_h: 2.43e-9
+    tolerance_percent: 5.0
+    zone: uncontrolled
+    notes: >
+      Starting-guess geometry before ALARP optimisation. Cs-137 single line at
+      0.662 MeV (yield 0.851). Lead attenuation is high at 0.662 MeV.
+
+  point_kernel_smr_compartment_near_operator:
+    description: "Cs-137 100 MBq; 5 cm Pb + 50 cm concrete; receptor at 3 m"
+    spec: "examples/05_smr_compartment/config.yaml"
+    engine: point_kernel
+    expected_dose_rate_sv_per_h: 6.43e-13
+    tolerance_percent: 10.0
+    zone: uncontrolled
+    notes: >
+      Composite slab (lead + ordinary concrete). Large total optical depth
+      (≈ 15 mfp combined). Buildup approximation less accurate at this depth;
+      10% tolerance reflects model uncertainty. First receptor only (nearby_operator).

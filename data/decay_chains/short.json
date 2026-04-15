@@ -1,0 +1,82 @@
+{
+  "_meta": {
+    "description": "A small decay library covering nuclides common in PWR/SMR source-term and activation assessments. Values are nominal and intended for pedagogical use.",
+    "half_life_unit": "s"
+  },
+  "nuclides": {
+    "Co-60": {
+      "half_life_s": 1.663e8,
+      "decay_constant_per_s": 4.167e-9,
+      "gamma_lines_MeV": [1.173, 1.333],
+      "gamma_yields_per_decay": [0.9985, 0.9998],
+      "parents": [],
+      "branching_to_daughter": 1.0,
+      "daughter": "Ni-60 (stable)"
+    },
+    "Co-58": {
+      "half_life_s": 6.123e6,
+      "decay_constant_per_s": 1.132e-7,
+      "gamma_lines_MeV": [0.811],
+      "gamma_yields_per_decay": [0.9945],
+      "daughter": "Fe-58 (stable)"
+    },
+    "Mn-54": {
+      "half_life_s": 2.697e7,
+      "decay_constant_per_s": 2.569e-8,
+      "gamma_lines_MeV": [0.835],
+      "gamma_yields_per_decay": [0.9998],
+      "daughter": "Cr-54 (stable)"
+    },
+    "Fe-59": {
+      "half_life_s": 3.845e6,
+      "decay_constant_per_s": 1.803e-7,
+      "gamma_lines_MeV": [1.099, 1.292],
+      "gamma_yields_per_decay": [0.565, 0.432],
+      "daughter": "Co-59 (stable)"
+    },
+    "Cs-137": {
+      "half_life_s": 9.489e8,
+      "decay_constant_per_s": 7.305e-10,
+      "gamma_lines_MeV": [0.662],
+      "gamma_yields_per_decay": [0.851],
+      "daughter": "Ba-137m"
+    },
+    "I-131": {
+      "half_life_s": 6.946e5,
+      "decay_constant_per_s": 9.979e-7,
+      "gamma_lines_MeV": [0.364],
+      "gamma_yields_per_decay": [0.817],
+      "daughter": "Xe-131 (stable)"
+    },
+    "Ar-41": {
+      "half_life_s": 6600.0,
+      "decay_constant_per_s": 1.050e-4,
+      "gamma_lines_MeV": [1.294],
+      "gamma_yields_per_decay": [0.991],
+      "daughter": "K-41 (stable)"
+    },
+    "N-16": {
+      "half_life_s": 7.13,
+      "decay_constant_per_s": 0.0972,
+      "gamma_lines_MeV": [6.129, 7.115],
+      "gamma_yields_per_decay": [0.670, 0.050],
+      "daughter": "O-16 (stable)"
+    },
+    "H-3": {
+      "half_life_s": 3.8878e8,
+      "decay_constant_per_s": 1.783e-9,
+      "gamma_lines_MeV": [],
+      "gamma_yields_per_decay": [],
+      "daughter": "He-3 (stable)",
+      "note": "Beta-only emitter; included for activity accounting."
+    },
+    "C-14": {
+      "half_life_s": 1.80667e11,
+      "decay_constant_per_s": 3.836e-12,
+      "gamma_lines_MeV": [],
+      "gamma_yields_per_decay": [],
+      "daughter": "N-14 (stable)",
+      "note": "Beta-only emitter."
+    }
+  }
+}

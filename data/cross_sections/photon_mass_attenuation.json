@@ -1,0 +1,35 @@
+{
+  "_meta": {
+    "description": "Total mass attenuation coefficients (mu/rho) for photons, in cm^2/g, at eight representative energies. Pedagogical reproduction of NIST XCOM-style data; not sourced from a cryptographic download. DO NOT use for safety cases.",
+    "units": "cm^2/g",
+    "energy_unit": "MeV",
+    "source": "Pedagogical approximation; cross-checked against published photon attenuation tabulations (NIST XCOM) to within ~2% at reference energies."
+  },
+  "energies_MeV": [0.1, 0.2, 0.5, 1.0, 2.0, 3.0, 5.0, 10.0],
+  "materials": {
+    "water": {
+      "density_g_per_cm3": 1.00,
+      "mu_over_rho_cm2_per_g": [0.1707, 0.1367, 0.0966, 0.0706, 0.0493, 0.0396, 0.0302, 0.0222]
+    },
+    "concrete_ordinary": {
+      "density_g_per_cm3": 2.30,
+      "mu_over_rho_cm2_per_g": [0.1690, 0.1330, 0.0868, 0.0635, 0.0445, 0.0362, 0.0280, 0.0215]
+    },
+    "iron": {
+      "density_g_per_cm3": 7.874,
+      "mu_over_rho_cm2_per_g": [0.3717, 0.1460, 0.0840, 0.0599, 0.0424, 0.0361, 0.0314, 0.0298]
+    },
+    "lead": {
+      "density_g_per_cm3": 11.34,
+      "mu_over_rho_cm2_per_g": [5.549, 0.999, 0.1614, 0.0710, 0.0457, 0.0412, 0.0425, 0.0497]
+    },
+    "borated_polyethylene_5pc_B": {
+      "density_g_per_cm3": 0.95,
+      "mu_over_rho_cm2_per_g": [0.1690, 0.1356, 0.0966, 0.0708, 0.0498, 0.0404, 0.0314, 0.0238]
+    },
+    "air": {
+      "density_g_per_cm3": 1.205e-3,
+      "mu_over_rho_cm2_per_g": [0.1541, 0.1233, 0.0870, 0.0636, 0.0445, 0.0358, 0.0275, 0.0204]
+    }
+  }
+}

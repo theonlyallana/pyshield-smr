@@ -1,0 +1,25 @@
+schema_version: 1.0.0
+case_name: Co-60 Buildup and Decay in Steel Target
+analyst: Portfolio Demonstration
+engine: point_kernel
+geometry:
+  type: infinite_slab
+  material: iron
+  thickness_m: 0.05
+source:
+  type: point_isotropic
+  position_m:
+  - 0.0
+  - 0.0
+  - -0.1
+  nuclide: Co-60
+  activity_bq: 1.0e5
+receptor:
+  type: point
+  position_m:
+  - 0.0
+  - 0.0
+  - 0.1
+buildup_material: iron
+report_format:
+- markdown

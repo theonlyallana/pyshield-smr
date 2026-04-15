@@ -1,0 +1,99 @@
+# PyShield-SMR Example: Simple Point-Kernel Shielding Analysis
+#
+# This example demonstrates the basic point-kernel dose-rate assessment workflow:
+#
+#   1. Define a point source (Co-60) at a fixed location
+#   2. Specify shielding geometry (lead slab)
+#   3. Place a receptor at a distance
+#   4. Compute dose rate accounting for buildup
+#   5. Assign radiological zone
+#
+# Physics: The point-kernel method computes uncollided fluence φ(r,E)
+# from a point source through shielding, then applies a buildup factor
+# B(τ, E) to account for scattered radiation:
+#
+#   dose_rate = ∫ [φ₀(r,E) × B(τ,E)] × h(E) dE
+#
+# where τ = ∫μ(E) dx is optical depth along the ray path.
+
+schema_version: "1.0.0"
+
+# Case identification
+case_name: "Co-60 Behind 5cm Lead"
+analyst: "Portfolio Demonstration"
+
+# Analysis engine selection
+# Options: "point_kernel" (fast, buildup approximation) | "monte_carlo" (slow, analog transport)
+engine: point_kernel
+
+# Geometry specification
+# Defines the shielding structure along the ray path from source to receptor.
+geometry:
+  type: infinite_slab
+  # Single material, single thickness (m)
+  material: lead
+  thickness_m: 0.05  # 5 cm lead
+
+# Source specification
+# Defines the radiation source (location, nuclide, activity).
+source:
+  type: point_isotropic
+  # Source position in meters (z-axis pointing toward receptor)
+  position_m: [0.0, 0.0, 0.0]
+  # Nuclide: Co-60 is a strong gamma emitter used in industrial radiography
+  nuclide: Co-60
+  # Activity in Becquerels (Bq)
+  activity_bq: 1.0e6  # 1 MBq (typical portable source)
+
+# Receptor specification
+# Where dose rate is computed.
+receptor:
+  type: point
+  # Receptor position in meters (1 m away from source)
+  position_m: [0.0, 0.0, 1.0]
+
+# Buildup material
+# The material whose buildup factor is applied (usually the first shielding layer).
+# Default is "water"; for lead shielding, explicitly set to "lead".
+buildup_material: lead
+
+# Reporting format(s)
+# Options: "markdown" (human-readable) | "html" (styled) | "json" (machine-readable)
+report_format:
+  - markdown
+  - html
+
+# Optional: Uncertainty quantification (UQ)
+# uncertainty:
+#   enabled: true
+#   method: monte_carlo
+#   n_samples: 100
+#   parameters:
+#     - name: activity_bq
+#       distribution: lognormal
+#       mean: 1.0e6
+#       sigma: 0.1  # 10% uncertainty
+#     - name: thickness_m
+#       distribution: uniform
+#       lower: 0.045
+#       upper: 0.055  # ±5mm manufacturing tolerance
+
+# Optional: ALARP optimization
+# alarp:
+#   enabled: true
+#   objective: minimize_collective_dose
+#   constraints:
+#     - dose_rate_sv_per_h: 1.0e-6  # Design threshold
+#   variables:
+#     - thickness_m: [0.01, 0.20]  # Search space: 1-20 cm lead
+
+# Analysis notes
+# annotations:
+#   purpose: "Portfolio demonstration for Rolls-Royce SMR role"
+#   assumptions:
+#     - "1-D plane-parallel geometry (no scattering around edges)"
+#     - "Photon transport only (negligible neutron contribution from Co-60)"
+#     - "Taylor two-term buildup factors valid up to ~20 mean free paths"
+#   limitations:
+#     - "Point-kernel ignores geometry details (finite slab edges, attenuation in air)"
+#     - "Buildup factor uncertainty not propagated (see UQ section for Monte Carlo alternative)"

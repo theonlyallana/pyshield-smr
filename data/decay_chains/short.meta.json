@@ -1,0 +1,8 @@
+{
+  "file": "short.json",
+  "source_label": "PyShield-SMR pedagogical nuclide library",
+  "retrieval_url": null,
+  "release_date": "2026-04-14",
+  "notes": "Ten common PWR/SMR-relevant nuclides with nominal half-lives, gamma lines and yields. For safety-case work use ENDF/B-VIII.0 decay data or ICRP 107.",
+  "accuracy_target": "within ~1% on half-life, within ~5% on gamma yields at listed lines"
+}

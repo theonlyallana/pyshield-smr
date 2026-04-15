@@ -1,0 +1,8 @@
+{
+  "file": "photon_mass_attenuation.json",
+  "source_label": "PyShield-SMR pedagogical photon attenuation library",
+  "retrieval_url": null,
+  "release_date": "2026-04-14",
+  "notes": "Pedagogical values aligned with NIST XCOM-style photon mass attenuation coefficients. For safety-case work use a primary source (NIST XCOM, ENDF/B-VIII.0, EPDL) with full documentation and cryptographic fingerprinting.",
+  "accuracy_target": "within ~2% of NIST XCOM at listed energies"
+}

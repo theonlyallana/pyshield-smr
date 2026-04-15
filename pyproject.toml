@@ -1,0 +1,105 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyshield-smr"
+version = "0.1.1"
+description = "Radiation physics and shielding analysis framework for Small Modular Reactors."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [
+    { name = "Andrew Allana" }
+]
+keywords = [
+    "radiation-physics",
+    "shielding",
+    "monte-carlo",
+    "SMR",
+    "reactor",
+    "ALARP",
+    "dose-rate",
+    "DPA",
+    "activation",
+    "neutron-transport",
+    "photon-transport"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pyyaml>=6.0",
+    "jinja2>=3.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4",
+    "pytest-cov>=4.1",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "pre-commit>=3.6",
+    "hypothesis>=6.99",
+]
+viz = [
+    "matplotlib>=3.8",
+    "pyvista>=0.43",
+]
+
+[project.scripts]
+pyshield = "pyshield_smr.cli.main:main"
+
+[tool.setuptools.packages.find]
+include = ["pyshield_smr*"]
+exclude = ["tests*", "docs*", "examples*", "reports*", "scripts*", "notebooks*"]
+
+# Nuclear data and report templates are accessed via Path(__file__) relative
+# paths at runtime. For an editable install (pip install -e .) the files are
+# always reachable. For a wheel / sdist install the data directory must also
+# be distributed; we do that via package-data on a thin shim package called
+# "data" that setuptools picks up automatically when the directory is present.
+#
+# NOTE: the path "../data/**" is invalid for package-data (paths must be
+# inside the package directory). The data files are intentionally kept at the
+# project root for this portfolio project. Use `pip install -e .` (editable).
+[tool.setuptools.package-data]
+"*" = ["data/**/*.json", "data/**/*.yaml", "reports/templates/*.j2"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "B", "UP", "PL", "NPY"]
+ignore = ["PLR0913", "PLR2004", "N802", "N803"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "numpy"
+
+[tool.mypy]
+python_version = "3.10"
+strict = false
+ignore_missing_imports = true
+warn_unused_ignores = true
+warn_redundant_casts = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q --strict-markers"
+testpaths = ["tests"]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: end-to-end workflow tests",
+]

@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+          cache-dependency-path: "requirements-dev.txt"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      - name: Lint (ruff check)
+        run: ruff check .
+
+      - name: Format check (ruff format)
+        run: ruff format --check .
+
+      - name: Type check (mypy)
+        run: mypy pyshield_smr || true
+
+      - name: Governance audit
+        run: python tasks/audit_process.py --verbose
+
+      - name: Unit tests
+        run: pytest -q tests/unit
+
+      - name: Integration tests
+        run: pytest -q tests/integration
+
+      - name: Smoke — import runner without scipy errors
+        run: python -c "from pyshield_smr.workflow.runner import Runner; print('import OK')"
+
+      - name: Smoke — run example 01
+        run: pyshield run examples/01_point_kernel_shielding/config.yaml

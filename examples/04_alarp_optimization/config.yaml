@@ -1,0 +1,91 @@
+# PyShield-SMR Example: ALARP (As Low As Reasonably Practicable) Optimization
+#
+# This example demonstrates optimal shielding design using constrained optimization:
+#
+#   Minimize: J(t) = w₁ × annual_collective_dose + w₂ × shielding_mass
+#   Subject to: dose_rate(t) ≤ 2.5 µSv/h (uncontrolled zone threshold)
+#   Variables: t = thicknesses of shielding layers
+#
+# Physics: ALARP is an UK/EU regulatory principle: we must reduce risk until
+# further reduction becomes "unreasonably costly" relative to the benefit.
+# This is formalized as a multi-objective optimization:
+#
+#   - Objective 1 (Health): Minimize collective dose = ∫ dose_rate(x) × occupancy(x) dx
+#   - Objective 2 (Economics): Minimize shielding mass (material and installation cost)
+#   - Constraint: Keep maximum dose rate below regulatory threshold
+#
+# The weights w₁, w₂ encode regulatory/policy priorities. Typical choice:
+#   w₁ = 1.0 (health), w₂ = 0.01 (economics) → health-driven
+# can be adjusted to w₁ = 1.0, w₂ = 0.1 (cost-conscious).
+
+schema_version: "1.0.0"
+
+case_name: "ALARP: Optimal Lead Thickness for Cs-137 Vault"
+analyst: "Portfolio Demonstration"
+
+engine: point_kernel
+
+# Composite slab: air gap + lead shielding (two unknowns to optimize)
+geometry:
+  type: composite_slab
+  materials: [lead]
+  thicknesses_m: [0.05]  # Starting guess: 5 cm lead
+
+source:
+  type: point_isotropic
+  position_m: [0.0, 0.0, 0.0]
+  nuclide: Cs-137  # Fission product with strong 0.66 MeV gamma
+  activity_bq: 1.0e7  # 10 MBq
+
+receptor:
+  type: point
+  position_m: [0.0, 0.0, 1.0]  # 1 m away
+
+buildup_material: lead
+
+# ALARP optimization configuration
+alarp:
+  enabled: true
+
+  # Objective function: minimize health risk + cost
+  objective:
+    health_weight: 1.0      # Prioritize dose reduction
+    cost_weight: 0.01       # Cost is secondary
+
+  # Constraints: stay in uncontrolled zone for public access
+  constraints:
+    dose_rate_sv_per_h_max: 2.5e-6  # 2.5 µSv/h (uncontrolled threshold, UK)
+
+  # Optimization variables: thickness bounds
+  variables:
+    - name: lead_thickness_m
+      lower_bound: 0.01   # Minimum 1 cm (must have some shielding)
+      upper_bound: 0.30   # Maximum 30 cm (practical limit)
+
+  # Optimization method and settings
+  method: slsqp  # Sequential Least Squares Programming (gradient-based)
+  max_iterations: 100
+  tolerance: 1e-6
+
+# Expected result:
+#   - Unconstrained: dose rate ≈ 200 µSv/h at 1 m (unacceptable)
+#   - With constraint: optimizer finds minimum thickness ~10 cm lead
+#     giving dose rate ≈ 2.5 µSv/h (just at threshold)
+#   - If health_weight >> cost_weight: adds extra shielding for margin
+#   - If cost_weight comparable: uses minimum thickness to meet constraint
+#
+# This demonstrates that shielding design is not binary (meet/don't meet threshold)
+# but rather a trade-off surface. Adding 1 cm more lead might cost £10k but reduce
+# dose by 30%, a favorable trade-off. Adding 20 cm reduces dose by 99% but costs
+# £200k with minimal additional health benefit.
+
+report_format:
+  - markdown
+  - html
+
+# Output: Optimizer should report:
+#   - Optimal thickness (e.g., 10.2 cm lead)
+#   - Achieved dose rate at optimum (e.g., 2.49 µSv/h)
+#   - Collective dose avoided vs. unshielded case
+#   - Shielding mass and estimated cost
+#   - Sensitivity analysis: how dose/cost change with ±10% thickness variation
