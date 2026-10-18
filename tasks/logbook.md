@@ -4,6 +4,11 @@ Append-only log of non-trivial project changes. Newest at the top.
 
 ---
 
+## 2026-10-18 — tests workflow passed, badge restored
+
+- GitHub Actions run [39164454656](https://github.com/theonlyallana/pyshield-smr/actions/runs/39164454656) (`tests`, push, commit `855fb97`) completed with success.
+- The README badge points at `.github/workflows/tests.yml`. It was not added before that run.
+
 ## 2026-10-18 — failing tests, audit requirements, pytest workflow
 
 - Point-kernel unit tests now pass `source_energies_MeV` and `source_intensities_per_s`. The function signature was already those names.

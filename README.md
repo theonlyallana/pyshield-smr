@@ -4,6 +4,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![tests](https://github.com/theonlyallana/pyshield-smr/actions/workflows/tests.yml/badge.svg)](https://github.com/theonlyallana/pyshield-smr/actions/workflows/tests.yml)
 
 > **Portfolio / demonstrator project.** Implements real physics, real numerical methods, and real QA practices. Not a licensed safety-case tool — see [disclaimer](#disclaimer).
 
@@ -142,7 +143,7 @@ On Python 3.12, `python tasks/audit_process.py --verbose` reported `audit: PASS 
 
 `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `docs/guides/QA.md` are not required. The specialist-routing check that read `AGENTS.md` is not run. `tasks/memory/MEMORY.md` stays dated 2026-04-14 and `tasks/memory/feedback.md` stays dated 2026-04-15; the audit locks those dates. Other memory files still have to be dated within 180 days. `tasks/process_state.md` stays at `last_reviewed: 2026-04-14` and `next_review_due: 2026-07-14`. The audit reports that the review date is overdue and does not fail for it.
 
-`.github/workflows/tests.yml` runs `pytest` on Python 3.12.
+`.github/workflows/tests.yml` runs `pytest` on Python 3.12. The badge at the top points at that workflow. It was added after [run 39164454656](https://github.com/theonlyallana/pyshield-smr/actions/runs/39164454656) completed with success on commit `855fb97`.
 
 Every analysis produces a **QA manifest** — a JSON record of the code version, all nuclear-data file SHA-256 hashes, platform, runtime, and warnings — ensuring full reproducibility.
 
