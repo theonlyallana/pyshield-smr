@@ -4,6 +4,14 @@ Append-only log of non-trivial project changes. Newest at the top.
 
 ---
 
+## 2026-10-18 — failing tests, audit requirements, pytest workflow
+
+- Point-kernel unit tests now pass `source_energies_MeV` and `source_intensities_per_s`. The function signature was already those names.
+- Density-scaling test constructs `Material` with `energies_MeV` and `mu_over_rho_cm2_per_g`. There is no `mu_rho_table`. The 2× assertion is unchanged.
+- Taylor buildup uses `|α₁|` as the growth coefficient. Water at 1 MeV and 4 mfp is 6.672. Lead at that point stays 1.643. Example 03 iron dose is 1.652e-7 Sv/h; the regression value is 1.65e-7 at the same 5% tolerance. Examples 01, 04, and 05 are unchanged.
+- The governance audit no longer requires `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, or `docs/guides/QA.md`. It does not rewrite `tasks/memory/MEMORY.md`, `tasks/memory/feedback.md`, or `tasks/process_state.md`.
+- `.github/workflows/tests.yml` runs pytest. The README badge is not added until that workflow has passed.
+
 ## 2026-10-18 — correct claims that no longer match the tree
 
 - Author name in `LICENSE`, `pyproject.toml`, and the README citation is Andrew Allan. The GitHub login stays `theonlyallana`.

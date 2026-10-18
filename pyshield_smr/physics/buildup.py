@@ -7,12 +7,14 @@ scattered (built-up) contribution:
 
 where ``B`` is the buildup factor. This module implements the *two-term Taylor form*::
 
-    B(mu_x) = A * exp(-a1 * mu_x) + (1 - A) * exp(-a2 * mu_x)
+    B(mu_x) = A * exp(|alpha1| * mu_x) + (1 - A) * exp(-alpha2 * mu_x)
 
 with parameters tabulated versus material and energy in
-``data/buildup_factors/taylor_two_term.json``. The form is widely used in teaching and
-early design sizing; the ANS-6.4.3 Geometric-Progression (GP) form is generally
-preferred for production work but is intentionally out of scope here (see
+``data/buildup_factors/taylor_two_term.json``. The stored ``alpha1`` sign is not
+the same in every row (negative for water and for low-energy iron and concrete,
+positive for lead and for high energy). The growth coefficient is the magnitude.
+The ANS-6.4.3 Geometric-Progression (GP) form is generally preferred for
+production work but is intentionally out of scope here (see
 ``docs/theory/02_point_kernel.md`` for the trade-off).
 
 The implementation interpolates *parameters* log-linearly in energy and then
@@ -54,7 +56,9 @@ def _load_table() -> Dict[str, Dict[float, TaylorParams]]:
             energy = float(key.split("_")[0])
             by_energy[energy] = TaylorParams(
                 A=float(v["A"]),
-                alpha1=float(v["alpha1"]),
+                # Growth coefficient. The file stores alpha1 with both signs;
+                # the magnitude is what enters the growing exponential.
+                alpha1=abs(float(v["alpha1"])),
                 alpha2=float(v["alpha2"]),
             )
         table[material] = by_energy
@@ -107,26 +111,24 @@ def taylor_buildup(
 
     Notes
     -----
-    The form is ``B = A * exp(+alpha1 * mu_x) + (1 - A) * exp(-alpha2 * mu_x)``.
-    ``alpha1`` drives the growth term (small positive value); ``alpha2`` drives the
-    complementary decay term (larger positive value). At ``mu_x = 0`` this yields
-    ``A + (1 - A) = 1`` by construction. Valid for ``mu_x ≤ 20`` mean free paths.
+    The form is ``B = A * exp(|alpha1| * mu_x) + (1 - A) * exp(-alpha2 * mu_x)``.
+    ``|alpha1|`` is the growth coefficient and ``alpha2`` is the complementary
+    decay coefficient. At ``mu_x = 0`` this is ``A + (1 - A) = 1``. Valid for
+    ``mu_x ≤ 20`` mean free paths.
 
-    Sign convention: the stored ``alpha1`` parameter enters the exponent with a
-    **positive** sign. This matches the parameterisation in the bundled
-    ``data/buildup_factors/taylor_two_term.json`` dataset.
+    ``|alpha1|`` is taken on each tabulated row before log-linear interpolation,
+    so a sign change between neighbouring energies does not pass the growth
+    coefficient through zero. There is no clamp: a value below 1 is a wrong
+    evaluation, not a result to hide.
     """
     scalar_input = np.ndim(mu_x) == 0
     mu_x_arr = np.atleast_1d(np.asarray(mu_x, dtype=float))
     mu_x_arr = np.clip(mu_x_arr, 0.0, 20.0)  # validity ceiling per the dataset meta
     params = _interpolate_params(material, energy_MeV)
-    # alpha1: positive exponent (buildup grows with optical depth).
-    # alpha2: negative exponent (complementary damping term).
+    # |alpha1| was applied when the table was loaded.
     B = params.A * np.exp(params.alpha1 * mu_x_arr) + (1.0 - params.A) * np.exp(
         -params.alpha2 * mu_x_arr
     )
-    # Physicality guard: B must be >= 1.  In practice this only triggers at the
-    # tails of the interpolated parameter range.
-    result = np.maximum(B, 1.0)
+    result = B
     # Return scalar if input was scalar (avoids deprecation on float() conversion).
     return float(result[0]) if scalar_input else result

@@ -94,7 +94,6 @@ class TestDensityScaling:
 
     def test_linear_with_density(self, mats) -> None:
         """Doubling density should double the linear attenuation coefficient."""
-        import copy
         from pyshield_smr.physics.materials import Material
 
         mat = mats["water"]
@@ -102,11 +101,12 @@ class TestDensityScaling:
 
         mu1 = linear_attenuation_coefficient(mat, energies, in_units="per_m")[0]
 
-        # Create a double-density water
+        # Same mass-attenuation table, twice the bulk density.
         mat2 = Material(
             name="water_2x",
             density_g_per_cm3=mat.density_g_per_cm3 * 2.0,
-            mu_rho_table=mat.mu_rho_table,
+            energies_MeV=mat.energies_MeV,
+            mu_over_rho_cm2_per_g=mat.mu_over_rho_cm2_per_g,
         )
         mu2 = linear_attenuation_coefficient(mat2, energies, in_units="per_m")[0]
 

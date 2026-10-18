@@ -1,12 +1,12 @@
 {
   "_meta": {
-    "description": "Two-term Taylor buildup factor parameters (A, alpha1, alpha2) for four reference materials. Buildup factor B(mu*x) = A * exp(-alpha1 * mu*x) + (1 - A) * exp(-alpha2 * mu*x). Pedagogical values aligned with ANS-6.4.3-style tabulations.",
-    "form": "B = A * exp(+a1*mu_x) + (1 - A) * exp(-a2*mu_x)",
+    "description": "Two-term Taylor buildup factor parameters (A, alpha1, alpha2) for four reference materials. Pedagogical values aligned with ANS-6.4.3-style tabulations. Stored alpha1 is negative for water and for low-energy iron and concrete, and positive for lead and for high energy. The code uses the magnitude as the growth coefficient.",
+    "form": "B = A * exp(|alpha1| * mu_x) + (1 - A) * exp(-alpha2 * mu_x)",
     "valid_range_mfp": [
       0.0,
       20.0
     ],
-    "sign_convention": "alpha1 enters with positive sign (growth term); alpha2 enters with negative sign (decay term)"
+    "sign_convention": "The growth coefficient is |alpha1|, taken on each tabulated row before interpolation. alpha2 is the decay coefficient and is stored positive."
   },
   "materials": {
     "water": {

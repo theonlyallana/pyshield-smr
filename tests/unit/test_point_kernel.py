@@ -35,8 +35,8 @@ def lead_5cm():
 def trivial_source():
     """Single 1 MeV line at 1 photon/s — useful for normalised checks."""
     return {
-        "energies_MeV": [1.0],
-        "intensities_per_s": [1.0],
+        "source_energies_MeV": [1.0],
+        "source_intensities_per_s": [1.0],
     }
 
 
