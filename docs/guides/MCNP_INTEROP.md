@@ -22,44 +22,22 @@ PyShield-SMR is designed to complement production Monte Carlo codes such as **MC
 | Regulatory submission | — Portfolio only | ✓ Licensed code |
 | Benchmark / cross-validation | ✓ Rapid first result | ✓ Reference answer |
 
-**Bottom line**: Use PyShield-SMR for initial design exploration and ALARP optimisation. Validate with MCNP at one or two representative design points. If MCNP results agree within ±10%, the PyShield-SMR design is credible for portfolio and screening purposes.
+The runner does not perform ALARP optimisation. This repository has no MCNP comparison on record, so it does not state an agreement band.
 
-## Exporting an MCNP Input Deck
+## Writing a pedagogical deck
 
-`pyshield_smr/transport/mcnp_io.py` generates an MCNP6-compatible input file from a PyShield-SMR spec:
+There is no `pyshield emit-mcnp` command, no `MCNPWriter`, and no `MCNPOutputParser`.
 
-```bash
-pyshield emit-mcnp \
-  examples/01_point_kernel_shielding/config.yaml \
-  example_01.inp
-```
-
-Or programmatically:
+`emit_slab_input` in `pyshield_smr/transport/mcnp_io.py` writes a text file from a `SlabStack`. The function's docstring says the file is not runnable in MCNP. It writes one cell per slab, `px` surfaces converted from metres to centimetres, a one-line `sdef` at a single energy, an `f2:p` surface tally, and `nps 1e5`. It does not write material compositions, an F5 tally, DE/DF cards, or the spec's history count.
 
 ```python
-from pyshield_smr.transport.mcnp_io import MCNPWriter
-writer = MCNPWriter(spec)
-writer.write("example_01.inp")
+from pyshield_smr.transport.geometry import SlabStack
+from pyshield_smr.transport.mcnp_io import emit_slab_input
+
+emit_slab_input(SlabStack(["lead"], [0.05]), 1.25, "example_01.inp")
 ```
 
-### What is exported
-
-The generated deck includes:
-
-- **Cell cards**: One cell per slab layer + one void cell + one outer void.
-- **Surface cards**: Planes perpendicular to z-axis at each layer boundary.
-- **Material cards**: Material compositions from `pyshield_smr/physics/materials.py`.
-- **Source card (SDEF)**: Point isotropic source at z = 0 with the PyShield-SMR energy spectrum.
-- **Tally card (F5)**: Ring tally at the receptor position (H*(10) dose via DE/DF cards).
-- **Physics card**: Photon transport only (MODE P); electron transport suppressed.
-- **NPS card**: Set to match `monte_carlo.n_histories`.
-- **Importance card**: IMP:P = 1 for all material cells, 0 for outer void.
-
-### What is NOT exported (limitations)
-
-- Variance reduction (DXTRAN, geometry splitting) is not configured automatically.
-- Neutron source and neutron transport cards are not generated.
-- The MCNP DE/DF dose tally uses a fixed ICRP-74 H*(10) table — verify it matches PyShield-SMR's `flux_to_dose/icrp74_photon.json`.
+`read_mctal_like` loads a three-column text file (`energy_MeV`, `value`, `relative_error`) with `#` comments. It does not parse an MCNP output file and it does not convert rem/h to Sv/h.
 
 ## Running MCNP
 
@@ -85,43 +63,16 @@ print(f"MCNP dose rate: {dose_rate_sv_per_h:.3e} Sv/h ± {rel_error*100:.1f}%")
 
 `MCNPOutputParser` reads the F5 tally from the output file and converts units from rem/h (MCNP default) to Sv/h (project standard).
 
-## Cross-Validation Workflow
+## Cross-validation
 
-Recommended protocol for validating a PyShield-SMR design:
-
-1. **Run PyShield-SMR** on the design spec and record `dose_rate_sv_per_h`.
-2. **Export MCNP deck** with `pyshield emit-mcnp`.
-3. **Run MCNP** until relative error < 2% on the F5 tally.
-4. **Compare**:
-   - Agreement within ±10% at μx < 5: expected; proceed with confidence.
-   - Agreement within ±15% at μx 5–10: acceptable; note in PHYSICS_CHANGELOG.
-   - Disagreement > 15%: investigate — check material density, buildup factor validity, geometry assumptions.
-5. **Record** the comparison in `docs/theory/PHYSICS_CHANGELOG.md`:
-   ```
-   - **[Point-kernel vs MCNP cross-check] Co-60 / 5 cm lead (commit: abc123)**:
-     - PyShield: 1.45e-5 Sv/h
-     - MCNP: 1.38e-5 Sv/h
-     - Difference: 4.8% — within expected buildup factor uncertainty
-     - Impact: Point-kernel results confirmed adequate for ALARP optimisation loop
-   ```
-
-## Known Discrepancy Sources
-
-| Source | Typical error | Mitigations |
-|---|---|---|
-| Buildup factor formula | ±5–10% at μx 5–10 | Use MCNP at μx > 5 for key design points |
-| Slab vs finite geometry | ±5% (edge effects) | Confirm receptor is far from geometry edges |
-| ICRP-74 H*(10) coefficients | < 1% | Both codes use same table; verify DE/DF cards match |
-| Statistical noise (MCNP) | ~1/√N histories | Run ≥ 10⁷ histories for < 1% relative error |
-| Cross-section library | < 2% | MCNP uses ENDF/B-VIII; PyShield uses NIST XCOM reproduction |
+This repository does not contain an MCNP run or a recorded dose comparison. `docs/theory/PHYSICS_CHANGELOG.md` does not contain an MCNP cross-check. Do not copy sample doses into that file unless they come from a run you performed.
 
 ## Code Module Map
 
 | File | Purpose |
 |---|---|
-| `transport/mcnp_io.py` | `MCNPWriter` (exporter), `MCNPOutputParser` (result reader) |
-| `cli/main.py` | `emit-mcnp` subcommand |
-| `physics/materials.py` | Material compositions exported to MCNP material cards |
+| `transport/mcnp_io.py` | `emit_slab_input`, `read_mctal_like` |
+| `cli/main.py` | no MCNP subcommand |
 
 ## Licensing Note
 

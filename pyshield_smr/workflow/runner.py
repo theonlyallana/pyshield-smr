@@ -4,8 +4,10 @@ The Runner class implements the complete analysis workflow:
 
     1. **Load & validate**: Parse YAML spec, check schema version, migrate if needed
     2. **Build objects**: Resolve source terms, geometry, material library
-    3. **Execute engine**: Run point-kernel or Monte Carlo transport
-    4. **Post-process**: Apply dose conversion, UQ sampling, ALARP optimization
+    3. **Execute engine**: Run point-kernel dose rate. A ``monte_carlo`` spec is
+       recorded as a warning; the Monte Carlo module is not called.
+    4. **Post-process**: Assign a radiological zone. UQ and ALARP sections in
+       the spec are recorded as warnings and are not executed.
     5. **Report**: Render Markdown & HTML templates with results
     6. **Govern**: Build QA manifest with data hashes and runtime info
     7. **Persist**: Write timestamped output folder with all reports
@@ -26,9 +28,10 @@ renderer.render() directly.
     runner = Runner.from_spec_file("examples/01_point_kernel_shielding/config.yaml")
     runner.execute()
     # Outputs:
-    #   reports/2026-04-14_14-32-15_Lead_lined_container/report.md
-    #   reports/2026-04-14_14-32-15_Lead_lined_container/report.html
-    #   reports/2026-04-14_14-32-15_Lead_lined_container/qa_manifest.json
+    #   reports/<UTC timestamp>_<case>/report.md
+    #   reports/<UTC timestamp>_<case>/report.html
+    #   reports/<UTC timestamp>_<case>/qa_manifest.json
+    #   reports/<UTC timestamp>_<case>/spec_used.yaml
 
 ## Error Handling Strategy
 
@@ -49,6 +52,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from pyshield_smr import __version__
 from pyshield_smr.io.report import render_report
 from pyshield_smr.io.yaml_config import load_yaml_spec
 from pyshield_smr.physics import (
@@ -539,11 +543,10 @@ class Runner:
                 "using ICRP-74 flux-to-dose coefficients."
             ),
             "monte_carlo": (
-                "Analog Monte Carlo photon transport: individual photon histories "
-                "are sampled from the source spectrum and tracked through the slab "
-                "geometry. Compton scattering uses the Kahn rejection method for "
-                "Klein-Nishina sampling. Dose is tallied at the receptor using "
-                "ICRP-74 H*(10) conversion coefficients."
+                "The spec requests Monte Carlo photon transport. This runner does "
+                "not execute that engine: it records a warning and leaves the dose "
+                "rate unset. Photon histories can be run by calling "
+                "pyshield_smr.transport.monte_carlo.MonteCarloPhoton directly."
             ),
         }
         method_summary = method_descriptions.get(
@@ -563,23 +566,34 @@ class Runner:
             "engine": engine,
             "buildup_material": self.spec.get("buildup_material", "water"),
             "generated_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
-            "version": "0.1.1",
+            "version": __version__,
             "dose_rate_sv_per_h": self.state.dose_rate_sv_per_h,
             "zone": self.state.zone,
             "method_summary": method_summary,
             # MC-specific fields — None unless Monte Carlo engine was used.
             "transmitted_weight": None,
             "relative_error": None,
-            "assumptions": [
-                "1-D plane-parallel geometry (infinite slab approximation).",
-                "Photon transport only — neutron contributions not modelled.",
-                "Taylor two-term buildup factor valid for optical depth ≤ 20 mfp.",
-                "Point-source approximation — source dimensions << source-to-receptor distance.",
-                "H*(10) dose quantity via ICRP-74 coefficients.",
-            ],
+            "assumptions": (
+                [
+                    "Monte Carlo was requested and was not executed by this runner.",
+                    "No dose rate was computed for this case.",
+                ]
+                if engine == "monte_carlo"
+                else [
+                    "1-D plane-parallel geometry (infinite slab approximation).",
+                    "Photon transport only — neutron contributions not modelled.",
+                    "Taylor two-term buildup factor valid for optical depth ≤ 20 mfp.",
+                    "Point-source approximation — source dimensions << source-to-receptor distance.",
+                    "H*(10) dose quantity via ICRP-74 coefficients.",
+                ]
+            ),
             "warnings": self.state.warnings,
             "uq": self.state.uq_results,
-            "uq_skip_reason": "UQ not enabled in this spec.",
+            "uq_skip_reason": (
+                "The spec includes an uncertainty section. The runner does not execute it."
+                if "uncertainty" in self.spec
+                else "UQ not enabled in this spec."
+            ),
             "data_hashes": data_hashes,
             "platform": _platform.platform(),
             "runtime_seconds": self.state.runtime_seconds,
@@ -605,7 +619,7 @@ class Runner:
             ]
 
             manifest = build_qa_manifest(
-                pyshield_version="0.1.0",
+                pyshield_version=__version__,
                 runtime_seconds=self.state.runtime_seconds,
                 data_files_to_hash=existing_files if existing_files else None,
                 warnings=self.state.warnings,

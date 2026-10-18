@@ -21,13 +21,13 @@ On Windows, tick **"Add Python to PATH"** during installation.
 
 ```powershell
 # Windows (PowerShell)
-git clone https://github.com/YOUR_GITHUB_USERNAME/pyshield-smr.git
+git clone https://github.com/theonlyallana/pyshield-smr.git
 cd pyshield-smr
 ```
 
 ```bash
 # Linux / macOS
-git clone https://github.com/YOUR_GITHUB_USERNAME/pyshield-smr.git
+git clone https://github.com/theonlyallana/pyshield-smr.git
 cd pyshield-smr
 ```
 
@@ -59,18 +59,18 @@ After activation you will see `(.venv)` at the start of your prompt.
 ## 3. Install dependencies
 
 ```powershell
-pip install -r requirements-dev.txt
-pip install -e .
+pip install -e ".[dev]"
 ```
 
-`requirements-dev.txt` installs `numpy`, `scipy`, `pyyaml`, `jinja2` (runtime)
-plus `pytest`, `ruff`, `mypy` (dev/test).  The `-e .` registers the `pyshield`
-CLI command and lets you edit code without reinstalling.
+That command installs the package in editable mode, including `numpy`, `scipy`,
+`pyyaml`, and `jinja2`, plus `pytest`, `ruff`, and `mypy`. It registers the
+`pyshield` command. There is no `requirements.txt`. `requirements-dev.txt`
+lists the same dependencies for `pip install -r`, but that command does not
+install the package itself.
 
-If you only need to run analyses (no tests or linting):
+Runtime-only install (no test tools):
 
 ```powershell
-pip install -r requirements.txt
 pip install -e .
 ```
 
@@ -78,19 +78,13 @@ pip install -e .
 
 ## 4. Verify the installation
 
-### Governance audit (should show 13 green ticks)
+### Governance audit
 
 ```powershell
 python tasks/audit_process.py --verbose
 ```
 
-Expected tail of output:
-
-```
-  ...
-  ✓ examples-consistency: all 5 example directories have config.yaml
-audit: PASS (13 checks)
-```
+The script runs 13 checks. It does not currently pass. On 2026-10-18, five checks failed because `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `docs/guides/QA.md` are missing, two checks then raise `FileNotFoundError` reading `AGENTS.md`, memory files dated April 2026 are older than 180 days, and `tasks/process_state.md` has `next_review_due: 2026-07-14`.
 
 ### Test suite
 
@@ -98,11 +92,7 @@ audit: PASS (13 checks)
 pytest -q
 ```
 
-All tests should pass.  Unit tests alone are faster if you just want a quick sanity check:
-
-```powershell
-pytest -q tests/unit
-```
+On Python 3.12 this reported 11 failed and 243 passed. `pytest -q tests/integration` reported 12 passed. The failures are in `test_attenuation.py` (density scaling), `test_buildup.py` (two water cases), and `test_point_kernel.py` (8 tests pass `energies_MeV`, which `point_kernel_dose_rate` does not accept).
 
 ---
 
@@ -115,14 +105,14 @@ pyshield run examples/01_point_kernel_shielding/config.yaml
 Expected console output:
 
 ```
-INFO | Starting analysis: Co-60 Behind 5cm Lead
-INFO | Resolving Co-60 at 1.00e+06 Bq
-INFO | Resolved 2 photon lines
-INFO | Building slab: lead 5.0 cm
-INFO | Engine: point-kernel
-INFO | Dose rate at receptor: 1.721e-08 Sv/h
-INFO | Zone assigned: uncontrolled
-INFO | All outputs written to reports\2026-..._Co-60_Behind_5cm_Lead\
+... | INFO | pyshield_smr.workflow.runner | Starting analysis: Co-60 Behind 5cm Lead
+... | INFO | pyshield_smr.workflow.runner |   Resolving Co-60 at 1.00e+06 Bq
+... | INFO | pyshield_smr.workflow.runner |   Resolved 2 photon lines
+... | INFO | pyshield_smr.workflow.runner |   Building slab: lead 5.0 cm
+... | INFO | pyshield_smr.workflow.runner |   Engine: point-kernel
+... | INFO | pyshield_smr.workflow.runner |     Dose rate at receptor: 1.721e-08 Sv/h
+... | INFO | pyshield_smr.workflow.runner |   Zone assigned: uncontrolled
+... | INFO | pyshield_smr.workflow.runner | All outputs written to reports/<timestamp>_Co-60_Behind_5cm_Lead
 ```
 
 Open the timestamped report folder:
@@ -169,7 +159,7 @@ pyshield run examples/04_alarp_optimization/config.yaml
 pyshield run examples/05_smr_compartment/config.yaml
 ```
 
-Each produces its own timestamped folder under `reports/`.
+Each command writes a timestamped folder under `reports/`. Examples 03, 04, and 05 still compute a point-kernel dose from the source written in the YAML. Example 02 requests `engine: monte_carlo`; the runner logs that Monte Carlo is not integrated and does not report a dose. Examples 04 and 05 do not run the optimiser or the uncertainty sampler.
 
 ---
 
@@ -201,52 +191,15 @@ buildup_material: lead
 report_format: [markdown, html]
 ```
 
-**Try it:** Change `thickness_m: 0.05` to `thickness_m: 0.10` and re-run. The dose rate drops by roughly a factor of 5–10. Each run goes to a new timestamped folder — nothing is ever overwritten.
+**Try it:** Change `thickness_m: 0.05` to `thickness_m: 0.10` and re-run. Each run goes to a new timestamped folder. Compare the dose rate printed for the two runs; this guide does not quote a ratio.
 
 ---
 
-## 8. Push to GitHub and enable CI
+## 8. Repository
 
-### Step 1 — Create an empty GitHub repository
+The public repository is https://github.com/theonlyallana/pyshield-smr.
 
-Go to [github.com/new](https://github.com/new):
-- Name: `pyshield-smr`
-- Visibility: **Public** (required for portfolio visibility)
-- **Do not** tick "Add a README", "Add .gitignore", or "Choose a licence" — the repo already has all of these.
-
-### Step 2 — Commit and push
-
-```powershell
-git add .
-git commit -m "Initial commit — PyShield-SMR v0.1.1"
-git branch -M main
-git remote add origin https://github.com/YOUR_GITHUB_USERNAME/pyshield-smr.git
-git push -u origin main
-```
-
-### Step 3 — Watch CI run
-
-Click the **Actions** tab on your repository page. GitHub will automatically run the CI pipeline in `.github/workflows/ci.yml`, testing across Python 3.10, 3.11, and 3.12:
-
-- Lint (`ruff`)
-- Type checks (`mypy`)
-- Governance audit (`python tasks/audit_process.py --verbose`)
-- Unit tests
-- Integration tests
-
-Once the pipeline passes you will see a green ✓ in the Actions tab and a green badge on your README.
-
-### Step 4 — Update the badge URLs
-
-In `README.md`, replace the two occurrences of `YOUR_GITHUB_USERNAME` with your actual username:
-
-```powershell
-# PowerShell — change 'andrewallana' to your actual GitHub username
-(Get-Content README.md) -replace 'YOUR_GITHUB_USERNAME', 'andrewallana' | Set-Content README.md
-git add README.md
-git commit -m "docs: add real CI badge URLs"
-git push
-```
+There is no `.github/workflows` directory, so GitHub Actions does not run lint, tests, or the governance audit on push. The README does not carry a CI badge.
 
 ---
 
@@ -255,12 +208,12 @@ git push
 | Intent | Windows (PowerShell) | Linux / macOS |
 |---|---|---|
 | Activate venv | `.venv\Scripts\Activate.ps1` | `source .venv/bin/activate` |
-| Install all deps | `pip install -r requirements-dev.txt && pip install -e .` | same |
+| Install package and dev tools | `pip install -e ".[dev]"` | same |
 | Run governance audit | `python tasks/audit_process.py --verbose` | same |
 | Run all tests | `pytest -q` | same |
 | Run unit tests | `pytest -q tests/unit` | same |
 | Run example 1 | `pyshield run examples/01_point_kernel_shielding/config.yaml` | same |
-| Run MC example (parallel) | `pyshield run examples/02_monte_carlo_transmission/config.yaml --workers 4` | same |
+| Run example 2 | `pyshield run examples/02_monte_carlo_transmission/config.yaml` | same; the runner warns that Monte Carlo is not integrated and reports no dose. The CLI has no `--workers` flag |
 | Open report folder | `explorer reports` | `open reports/` |
 | Lint | `ruff check .` | same |
 | Format | `ruff format .` | same |
@@ -281,7 +234,7 @@ Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
 **`No module named 'scipy'`** or **`No module named 'jinja2'`**
-Run `pip install -r requirements-dev.txt` — this installs all dependencies in one go.
+Run `pip install -e ".[dev]"` with the virtual environment active.
 
 **Report rendering error — template not found**
 Ensure `reports/templates/report.md.j2` and `report.html.j2` exist. If not, restore from git:
@@ -290,9 +243,7 @@ git checkout HEAD -- reports/templates/
 ```
 
 **Audit fails — missing required files**
-```powershell
-git checkout HEAD -- <path/to/missing/file>
-```
+`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `docs/guides/QA.md` are not in the current tree. Checking them out from an older commit restores files that were deleted on purpose; decide that separately rather than treating the audit failure as a local checkout mistake.
 
 ---
 
@@ -303,6 +254,6 @@ git checkout HEAD -- <path/to/missing/file>
 | `docs/theory/01_transport_theory.md` | Boltzmann equation, photon interactions, H*(10) dose quantity |
 | `docs/theory/02_point_kernel.md` | Detailed derivation of the point-kernel calculation |
 | `docs/theory/07_alarp.md` | ALARP regulatory framework and optimisation formulation |
-| `docs/guides/QA.md` | Reproducibility, QA manifest, regression testing |
-| `docs/guides/HPC.md` | Running large Monte Carlo jobs on a SLURM/PBS cluster |
+| `docs/theory/PHYSICS_CHANGELOG.md` | Recorded physics changes. There is no `docs/guides/QA.md` |
+| `docs/guides/HPC.md` | HPC helpers, and which CLI flags are absent |
 | `ARCHITECTURE.md` | Layered design, module map, extension points |

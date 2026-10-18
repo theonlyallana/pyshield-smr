@@ -2,10 +2,8 @@
 
 **Radiation physics and shielding analysis framework for Small Modular Reactors — built from first principles in Python.**
 
-[![CI](https://github.com/YOUR_GITHUB_USERNAME/pyshield-smr/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_GITHUB_USERNAME/pyshield-smr/actions/workflows/ci.yml)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Governance](https://img.shields.io/badge/audit-13%2F13%20checks-brightgreen)](#quality--governance)
 
 > **Portfolio / demonstrator project.** Implements real physics, real numerical methods, and real QA practices. Not a licensed safety-case tool — see [disclaimer](#disclaimer).
 
@@ -19,53 +17,54 @@ PyShield-SMR is structured around the full competency profile of a Radiation Phy
 |---|---|
 | Dose-rate shielding assessments | `pyshield_smr/shielding/point_kernel.py` |
 | Monte Carlo photon transport | `pyshield_smr/transport/monte_carlo.py` |
-| Source-term generation (fission products, activation) | `pyshield_smr/sources/source_term.py` |
-| Bateman decay-chain solver | `pyshield_smr/activation/bateman.py` |
+| Source-term generation | `pyshield_smr/sources/source_term.py` |
+| Bateman decay-chain solver | `pyshield_smr/activation/bateman.py` (`decay_matrix`, `decay_inventory`) |
 | DPA, gamma heating, detector response | `pyshield_smr/shielding/dpa.py`, `gamma_heating.py`, `detector.py` |
-| ALARP shielding optimisation | `pyshield_smr/alarp/optimiser.py` |
-| Latin-hypercube uncertainty quantification | `pyshield_smr/uq/monte_carlo_uq.py` |
-| Reproducible YAML-driven workflow engine | `pyshield_smr/workflow/runner.py` |
+| ALARP shielding optimisation | `pyshield_smr/alarp/optimiser.py` (`optimise_shielding`) |
+| Latin-hypercube uncertainty quantification | `pyshield_smr/uq/monte_carlo_uq.py` (`lhs_samples`) |
+| YAML-driven workflow engine | `pyshield_smr/workflow/runner.py` |
 | QA manifest (data hashes, version, platform) | `pyshield_smr/workflow/quality.py` |
 | Structured technical report (Markdown + HTML) | `reports/templates/` |
-| HPC job-script generation (SLURM/PBS) | `pyshield_smr/hpc/scheduler.py` |
+| SLURM/PBS script helpers | `pyshield_smr/hpc/scheduler.py` (`emit_slurm_script`, `emit_pbs_script`) |
+
+The workflow runner calls the point-kernel dose calculation, zone assignment, the QA manifest, and the report templates. It does not call the Monte Carlo engine, the Bateman solver, DPA, gamma heating, the detector response, the ALARP optimiser, or the UQ samplers. Those functions are in the package and can be imported directly. `pyshield emit-slurm` writes a short script and logs that SLURM generation is not implemented; it does not call `emit_slurm_script`. There is no `emit-pbs` command and no `--workers` flag.
 
 ---
 
 ## Quick start (Windows / PowerShell)
 
 ```powershell
-git clone https://github.com/YOUR_GITHUB_USERNAME/pyshield-smr.git
+git clone https://github.com/theonlyallana/pyshield-smr.git
 cd pyshield-smr
 
 python -m venv .venv
 .venv\Scripts\Activate.ps1
 
-pip install -r requirements-dev.txt
-pip install -e .
+pip install -e ".[dev]"
 
-# Run the governance audit (all 13 checks)
+# Governance audit (13 checks; it does not currently pass — see below)
 python tasks/audit_process.py --verbose
 
-# Run the test suite
+# Test suite (not all tests pass — see below)
 pytest -q
 
-# Run Example 1 — Co-60 behind 5 cm lead, point-kernel dose assessment
+# Example 1 — Co-60 behind 5 cm lead, point-kernel dose assessment
 pyshield run examples/01_point_kernel_shielding/config.yaml
 
 # Open the generated report
 start reports\  # then open the timestamped folder
 ```
 
-**Expected output from Example 1:**
+**Expected output from Example 1** (log lines are `timestamp | LEVEL | logger | message`; dose checked on Python 3.12):
 ```
-INFO | Starting analysis: Co-60 Behind 5cm Lead
-INFO | Resolving Co-60 at 1.00e+06 Bq
-INFO | Resolved 2 photon lines
-INFO | Building slab: lead 5.0 cm
-INFO | Engine: point-kernel
-INFO | Dose rate at receptor: 1.721e-08 Sv/h
-INFO | Zone assigned: uncontrolled
-INFO | All outputs written to reports\..._Co-60_Behind_5cm_Lead\
+... | INFO | pyshield_smr.workflow.runner | Starting analysis: Co-60 Behind 5cm Lead
+... | INFO | pyshield_smr.workflow.runner |   Resolving Co-60 at 1.00e+06 Bq
+... | INFO | pyshield_smr.workflow.runner |   Resolved 2 photon lines
+... | INFO | pyshield_smr.workflow.runner |   Building slab: lead 5.0 cm
+... | INFO | pyshield_smr.workflow.runner |   Engine: point-kernel
+... | INFO | pyshield_smr.workflow.runner |     Dose rate at receptor: 1.721e-08 Sv/h
+... | INFO | pyshield_smr.workflow.runner |   Zone assigned: uncontrolled
+... | INFO | pyshield_smr.workflow.runner | All outputs written to reports/<timestamp>_Co-60_Behind_5cm_Lead
 ```
 
 Results written to `reports/<timestamp>_<case>/`:
@@ -73,7 +72,7 @@ Results written to `reports/<timestamp>_<case>/`:
 ```
 report.md          ← human-readable analysis report
 report.html        ← styled HTML (open in browser)
-qa_manifest.json   ← QA record: code version, data hashes, runtime
+qa_manifest.json   ← QA record: package version, data hashes, runtime
 spec_used.yaml     ← exact input spec that produced this result
 ```
 
@@ -81,15 +80,15 @@ spec_used.yaml     ← exact input spec that produced this result
 
 ## Five worked examples
 
-Each example builds complexity. Run any with `pyshield run examples/<folder>/config.yaml`.
+Run a spec with `pyshield run examples/<folder>/config.yaml`. What the runner actually executes:
 
-| # | Example | Physics demonstrated |
+| # | Example | What `pyshield run` does |
 |---|---|---|
-| 01 | `01_point_kernel_shielding/` | Point-kernel method, buildup factors, zone assignment |
-| 02 | `02_monte_carlo_transmission/` | Analog MC transport, statistical convergence, variance reduction |
-| 03 | `03_activation_decay/` | Activation source term, gamma-line library, iron shielding |
-| 04 | `04_alarp_optimization/` | SLSQP-constrained shielding optimisation, ALARP trade-off |
-| 05 | `05_smr_compartment/` | Multi-layer composite shield, multi-receptor, UQ + ALARP |
+| 01 | `01_point_kernel_shielding/` | Point-kernel dose for Co-60 through 5 cm lead, then zone assignment |
+| 02 | `02_monte_carlo_transmission/` | Logs that Monte Carlo is not integrated and does not report a dose. The spec's `monte_carlo` block is not read by the runner |
+| 03 | `03_activation_decay/` | Point-kernel dose from the Co-60 activity written in the spec. `decay_inventory` and `simple_burnup_buildup` are not called |
+| 04 | `04_alarp_optimization/` | Point-kernel dose for the starting geometry. `optimise_shielding` is not called |
+| 05 | `05_smr_compartment/` | Point-kernel dose for the first receptor. Uncertainty and ALARP sections are not executed |
 
 ---
 
@@ -126,43 +125,40 @@ The project implements a four-layer governance model (see [`tasks/PROCESS_ARCHIT
 python tasks/audit_process.py --verbose
 ```
 
-```
-✓ required-files-present
-✓ architecture-links
-✓ specialist-routing-doctrine
-✓ agent-files-present
-✓ memory-freshness
-✓ process-state-review-date
-✓ todo-review-present
-✓ physics-changelog-nonempty
-✓ yaml-schema-version
-✓ data-directory-populated
-✓ tests-discoverable
-✓ qa-manifest-hashing
-✓ examples-consistency
-audit: PASS (13 checks)
-```
+The script defines 13 checks. On 2026-10-18 it failed 5 of them (`audit: FAIL`):
+
+- `required-files-present` — `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `docs/guides/QA.md` are not in the tree (they were deleted after the audit was written).
+- `check_architecture_links` and `check_specialist_routing` — both read `AGENTS.md` and raise `FileNotFoundError`.
+- `memory-freshness` — files under `tasks/memory/` are dated 2026-04-14 or 2026-04-15, which is older than the 180-day limit.
+- `process-state-review-date` — `tasks/process_state.md` has `next_review_due: 2026-07-14`, which is overdue.
+
+Eight checks passed: agent files, todo review, physics changelog, YAML schema version, data directory, tests discoverable, QA hashing helper, and the five example directories each having a `config.yaml`. There is no GitHub Actions workflow under `.github/workflows`.
 
 Every analysis produces a **QA manifest** — a JSON record of the code version, all nuclear-data file SHA-256 hashes, platform, runtime, and warnings — ensuring full reproducibility.
 
 ### Test coverage
 
+On Python 3.12, `pytest -q` reported **11 failed, 243 passed**. `pytest -q tests/integration` reported **12 passed**. The integration file compares four point-kernel cases with the tolerances in `tests/integration/regression_values.yaml` (5% or 10%). Example 02 is not one of those cases.
+
+Unit modules and what they cover:
+
 ```
 tests/unit/
   test_physics_constants.py   CODATA 2018 constants
-  test_buildup.py             Buildup formula: B(τ=0)=1, B grows with τ, physical range
-  test_attenuation.py         Log-log interpolation, unit conversion, lead > water
+  test_buildup.py             B(τ=0)=1 and growth with τ. Two water cases currently fail
+  test_attenuation.py         Interpolation and unit conversion. Density scaling currently fails
+                              (Material has no attribute mu_rho_table)
   test_dose.py                h*(10) linearity, 3600× unit ratio, ICRP-74 range
   test_geometry.py            SlabStack boundaries, traverse(), Sphere validation
-  test_source_term.py         Co-60 two-line spectrum, Cs-137, multi-nuclide, binning
-  test_point_kernel.py        1/r² law, exp(-τ), buildup > uncollided, Co-60 benchmark
+  test_source_term.py         Co-60 two-line spectrum, Cs-137, multi-nuclide
+  test_point_kernel.py        8 of 10 tests fail: they call point_kernel_dose_rate(..., energies_MeV=...),
+                              and the function parameter is source_energies_MeV
   test_zoning.py              Zone thresholds, boundary conditions, custom thresholds
   test_yaml_config.py         YAML 1.1 float parsing (1.0e6 → float, not string)
-  test_runner_smoke.py        Import paths, full execute cycle, QA manifest, no errors
-
-tests/integration/
-  test_regression.py          Four example cases within ±5–10% of regression_values.yaml
+  test_runner_smoke.py        Import paths and a point-kernel execute cycle
 ```
+
+There are no unit tests for `activation/`, `uq/`, `alarp/optimiser.py`, `transport/monte_carlo.py`, `hpc/`, or the DPA, gamma-heating, and detector modules.
 
 ---
 
@@ -191,14 +187,13 @@ pyshield-smr/
 │
 ├── examples/                  # Five end-to-end worked analyses
 ├── tests/                     # pytest unit + integration suite
-├── docs/theory/               # Physics derivations (7 documents)
-├── docs/guides/               # How-to guides (QA, HPC, MCNP interop, getting started)
+├── docs/theory/               # Physics derivations (7 documents + PHYSICS_CHANGELOG.md)
+├── docs/guides/               # GETTING_STARTED.md, HPC.md, MCNP_INTEROP.md
 ├── reports/templates/         # Jinja2 report templates (Markdown + HTML)
-├── tasks/                     # Governance: process architecture, audit, memory, agents
+├── tasks/                     # Governance notes, audit script, memory, agent files
 │
-├── requirements.txt           # Runtime dependencies
-├── requirements-dev.txt       # + test and lint tools
-└── pyproject.toml             # Package metadata and tool config
+├── requirements-dev.txt       # Pip requirements matching pyproject; does not install the package
+└── pyproject.toml             # Package metadata, runtime deps, [dev] extra, tool config
 ```
 
 ---
@@ -214,9 +209,8 @@ pyshield-smr/
 | [`docs/theory/05_activation_and_decay.md`](docs/theory/05_activation_and_decay.md) | Bateman equations, matrix exponential, burnup simplifications |
 | [`docs/theory/06_uq.md`](docs/theory/06_uq.md) | LHS, Morris screening, uncertainty sources, reporting |
 | [`docs/theory/07_alarp.md`](docs/theory/07_alarp.md) | ALARP regulatory basis, optimisation formulation, IRR17 |
-| [`docs/guides/GETTING_STARTED.md`](docs/guides/GETTING_STARTED.md) | Full setup and walkthrough (Windows + Linux/macOS) |
-| [`docs/guides/QA.md`](docs/guides/QA.md) | Reproducibility, QA manifest, regression testing, physics changelog |
-| [`docs/guides/HPC.md`](docs/guides/HPC.md) | Parallel execution, SLURM/PBS job scripts |
+| [`docs/guides/GETTING_STARTED.md`](docs/guides/GETTING_STARTED.md) | Setup and walkthrough (Windows + Linux/macOS) |
+| [`docs/guides/HPC.md`](docs/guides/HPC.md) | What the HPC helpers do, and which CLI flags are absent |
 | [`docs/guides/MCNP_INTEROP.md`](docs/guides/MCNP_INTEROP.md) | Exporting to MCNP, cross-validation protocol |
 
 ---
@@ -234,8 +228,8 @@ PyShield-SMR is an educational and portfolio project. It implements real physics
 
 ## License
 
-[MIT](LICENSE) — © Andrew Allana, 2026.
+[MIT](LICENSE) — © Andrew Allan, 2026.
 
 If you reference this work in a thesis, portfolio, or presentation:
 
-> A. Allana, *PyShield-SMR: an open-source radiation physics and shielding analysis framework for SMRs*, 2026. https://github.com/YOUR_GITHUB_USERNAME/pyshield-smr
+> A. Allan, *PyShield-SMR: an open-source radiation physics and shielding analysis framework for SMRs*, 2026. https://github.com/theonlyallana/pyshield-smr

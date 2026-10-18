@@ -36,7 +36,7 @@ $$\mathbf{N}(t) = \exp(\mathbf{A} t) \, \mathbf{N}(0)$$
 
 PyShield-SMR computes $\exp(\mathbf{A} t)$ using `scipy.linalg.expm` for the decay step (where $\phi = 0$, so $\mathbf{A}$ is purely from radioactive decay). The irradiation step can alternatively use eigenvalue decomposition when the chain is short.
 
-See `pyshield_smr/activation/bateman.py → BatemanSolver.solve()`.
+See `decay_matrix` and `decay_inventory` in `pyshield_smr/activation/bateman.py`. There is no `BatemanSolver` class.
 
 ### Two-Step Approach
 
@@ -74,7 +74,7 @@ For $t_\text{irr} < 5 t_{1/2}$ (build-up not saturated):
 
 $$A(t_\text{irr}) = A_\text{sat} \left(1 - e^{-\lambda t_\text{irr}}\right)$$
 
-This is the formula used in `activation/burnup.py → compute_activation()`.
+The single-channel form is `simple_burnup_buildup` in `activation/burnup.py`. There is no `compute_activation`.
 
 ## YAML Spec: Activation Input
 
@@ -94,7 +94,7 @@ activation:
         Mo: 0.025
 ```
 
-The activation module returns a `SourceTerm` that is merged with the fission-product source in the workflow runner.
+The workflow runner does not read an `activation` block and does not merge a Bateman inventory into the source. `build_source_from_inventory` turns a `{nuclide: becquerels}` dict into photon lines. Example 03 puts a Co-60 activity in the YAML and runs the point kernel on that activity.
 
 ## Numerical Considerations
 
@@ -106,18 +106,14 @@ The activation module returns a `SourceTerm` that is merged with the fission-pro
 
 | File | Key class / function |
 |---|---|
-| `activation/bateman.py` | `BatemanSolver`, `BatemanSolver.solve(t_irr, t_decay)` |
-| `activation/burnup.py` | `compute_activation(material, flux, t_irr)` |
-| `sources/source_term.py` | `build_source_term()` — consumes `BatemanSolver` output |
+| `activation/bateman.py` | `decay_matrix`, `decay_inventory` |
+| `activation/burnup.py` | `simple_burnup_buildup` |
+| `sources/source_term.py` | `build_source_from_inventory` |
 | `data/decay_chains/short.json` | Gamma lines, half-lives, branching fractions |
 
 ## Validation
 
-The Bateman solver is validated against the **Ci analytic benchmark** (single-nuclide exponential decay) in `tests/unit/test_physics_constants.py` and against the two-nuclide chain (parent → daughter → stable) analytic solution. See `docs/guides/QA.md` §"Regression Testing" for the regression value format.
-
-Expected accuracies:
-- Single-nuclide decay: relative error < 10⁻¹⁰ (limited by float64 precision).
-- Two-nuclide Bateman chain: relative error < 10⁻⁶ (matrix exponentiation error).
+Nothing in `tests/` imports `decay_inventory` or `simple_burnup_buildup`. `tests/unit/test_physics_constants.py` checks physical constants, not a Bateman benchmark. `docs/guides/QA.md` is not in the repository. This file does not quote an error for the solver.
 
 ## References
 

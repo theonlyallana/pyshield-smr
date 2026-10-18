@@ -4,6 +4,19 @@ Append-only log of non-trivial project changes. Newest at the top.
 
 ---
 
+## 2026-10-18 — correct claims that no longer match the tree
+
+- Author name in `LICENSE`, `pyproject.toml`, and the README citation is Andrew Allan. The GitHub login stays `theonlyallana`.
+- Removed the README CI badge. There is no `.github/workflows` file.
+- Install instructions now use `pip install -e ".[dev]"`. `requirements.txt` is not in the tree; `requirements-dev.txt` no longer includes it.
+- Docs no longer say the audit passes 13/13, that every test passes, or that `pyshield run` executes Monte Carlo, UQ, or ALARP.
+- QA manifest version written by the runner now follows `pyshield_smr.__version__` (0.1.1), not a hardcoded 0.1.0.
+- `emit_slurm_script` / `emit_pbs_script` no longer emit `pyshield run --output-dir`, which the CLI does not accept.
+
+The audit still fails. The 11 pytest failures were not changed.
+
+---
+
 ## 2026-04-15 — governance repair + bug-fix session (session-2 / Orchestrator)
 
 **Objective**: Make `python tasks/audit_process.py` pass and examples actually run end-to-end.

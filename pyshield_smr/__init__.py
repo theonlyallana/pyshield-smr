@@ -19,6 +19,6 @@ from importlib.metadata import PackageNotFoundError, version
 try:  # pragma: no cover - trivial
     __version__ = version("pyshield-smr")
 except PackageNotFoundError:  # pragma: no cover - local editable install edge case
-    __version__ = "0.1.0"
+    __version__ = "0.1.1"
 
 __all__ = ["__version__"]

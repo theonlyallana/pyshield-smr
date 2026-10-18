@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-15
+last_updated: 2026-10-18
 ---
 
 # user.md
@@ -23,6 +23,6 @@ Portfolio project demonstrating the full competency profile of a Radiation Physi
 - After finding bugs or making changes, always record learnings in the md files (PHYSICS_CHANGELOG, lessons.md, logbook.md, memory/).
 - Use agents / subagents to check md files and record learnings at session end.
 
-## Current status (2026-04-15)
+## Current status (2026-10-18)
 
-The repo is in a state where `python tasks/audit_process.py --verbose` passes 13/13 checks and all five point-kernel examples run end-to-end without errors. Four silent physics/runtime bugs were discovered and fixed. The repo is now ready for review or interview demonstration on the point-kernel + governance stack. MC/UQ/ALARP runner integration is the next major milestone.
+The audit does not pass (5 of 13 checks failed). Example 01 runs and prints 1.721e-08 Sv/h. Examples 03–05 run a point-kernel dose from the activity in the YAML. Example 02 does not. The test suite is not green (11 failed, 243 passed on Python 3.12). MC, UQ, and ALARP are still not called by the runner.

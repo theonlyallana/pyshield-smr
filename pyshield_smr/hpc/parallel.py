@@ -42,9 +42,9 @@ in Monte Carlo literature (e.g., "non-overlapping subsequences" from L'Ecuyer).
 
 ## Integration with Runner
 
-The runner's _run_monte_carlo() method will call run_histories_parallel() if
-the spec requests parallel execution. Number of workers defaults to CPU count
-or can be specified in spec['monte_carlo']['n_workers'].
+Runner._run_monte_carlo() does not call this module. It logs a warning and
+does not return a dose rate. Call run_histories_parallel() yourself. The
+``pyshield`` CLI has no ``--workers`` flag.
 """
 
 from __future__ import annotations

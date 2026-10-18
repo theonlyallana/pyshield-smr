@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-15
+last_updated: 2026-10-18
 ---
 
 # source_index.md — best starting points by task type
@@ -7,9 +7,9 @@ last_updated: 2026-04-15
 | If the task is… | Start here |
 |---|---|
 | Changing a cross section or buildup factor | `docs/theory/02_point_kernel.md` → `data/` → `pyshield_smr/physics/` → `docs/theory/PHYSICS_CHANGELOG.md` |
-| Adding a new Monte Carlo feature | `docs/theory/03_monte_carlo.md` → `pyshield_smr/transport/monte_carlo.py` → `tests/unit/test_point_kernel.py` |
-| Wiring MC into the runner | `pyshield_smr/workflow/runner.py → _run_monte_carlo()` stub → `transport/monte_carlo.py → run_monte_carlo()` |
-| Wiring UQ into the runner | `pyshield_smr/workflow/runner.py → _run_uq()` stub → `uq/monte_carlo_uq.py → LatinHypercubeSampler` |
+| Adding a new Monte Carlo feature | `docs/theory/03_monte_carlo.md` → `pyshield_smr/transport/monte_carlo.py` (`MonteCarloPhoton`). There is no Monte Carlo unit test |
+| Wiring MC into the runner | `pyshield_smr/workflow/runner.py` `_run_monte_carlo` stub → `MonteCarloPhoton.run` |
+| Wiring UQ into the runner | `pyshield_smr/workflow/runner.py` `_run_uq` stub → `lhs_samples` / `morris_screen` |
 | Wiring ALARP into the runner | `pyshield_smr/workflow/runner.py → _run_alarp()` stub → `alarp/optimiser.py` (requires scipy) |
 | Adding a new dose quantity | `docs/theory/01_transport_theory.md` → `pyshield_smr/physics/dose.py` → `pyshield_smr/shielding/dose_rate.py` |
 | Adding a new source type to the runner | `runner.py → resolve_sources()` → `sources/source_term.py` → `examples/` |

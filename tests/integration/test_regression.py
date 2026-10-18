@@ -4,7 +4,7 @@ These tests run the complete analysis workflow (YAML spec → transport → dose
 for each documented example and compare results against the values in
 ``tests/integration/regression_values.yaml``.
 
-Regression policy (see AGENTS.md §"Verification Before Done"):
+Regression policy (AGENTS.md is not in this repository):
 - Difference ≤ 5%: PASS — numerical precision variation.
 - Difference 5–10%: INVESTIGATE — check whether a physics change was intended.
 - Difference > 10%: FAIL — physics regression or data corruption.
