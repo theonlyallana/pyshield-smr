@@ -22,11 +22,13 @@ pyshield_smr/
 ├── workflow/       # YAML schema, runner, QA manifest, report renderer
 ├── hpc/            # process-pool executor, SLURM / PBS script emitters
 ├── cli/            # `pyshield` command-line interface (Click-free, argparse-only)
-├── io/             # report rendering, data loading, VTK-lite fluence export
+├── io/             # YAML loading and Jinja2 report rendering
 └── utils/          # logging, hashing
 ```
 
 ## 3. Data flow
+
+`Runner.execute` does this:
 
 ```
 analysis.yaml
@@ -34,46 +36,39 @@ analysis.yaml
      ▼
 workflow.Runner.execute
      │
-     ├─ sources.SourceBuilder  ──► ordered list of (energy, intensity) emissions
-     │
-     ├─ activation.Bateman     ──► time-dependent inventory if decay requested
-     │
-     ├─ transport.MonteCarlo   ──► tallies: fluence, uncollided current, surface crossings
-     │       OR
-     │   shielding.PointKernel ──► tallies: uncollided + build-up corrected dose
-     │
-     ├─ shielding.DoseRate     ──► H*(10) from spectral fluence
-     │   shielding.DPA         ──► atomic-displacement damage rate
-     │   shielding.GammaHeating──► volumetric energy deposition
-     │
-     ├─ uq                     ──► propagated uncertainty bands (optional)
-     │
-     ├─ alarp                  ──► optimised thicknesses (optional)
-     │
-     └─ io.report              ──► report.md / report.html + qa_manifest.json
+     ├─ sources.build_source_from_inventory   (nuclide name + activity in the spec)
+     ├─ transport.geometry.SlabStack
+     ├─ shielding.point_kernel_dose_rate      (only when engine is point_kernel)
+     ├─ alarp.zoning.assign_zone
+     ├─ workflow.quality.build_qa_manifest
+     └─ io.report.render_report               → report.md, report.html,
+                                                qa_manifest.json, spec_used.yaml
 ```
+
+If `engine` is `monte_carlo`, or if the spec contains `uncertainty` or `alarp`, the runner appends a warning and does not call `MonteCarloPhoton`, `lhs_samples`, `morris_screen`, or `optimise_shielding`. It also does not call `decay_inventory`, `dpa_rate`, `gamma_heating_rate`, or `detector_response`. Those functions exist for direct import.
 
 ## 4. Extension points
 
-- **New engine.** Implement a class in `pyshield_smr/transport/` or `pyshield_smr/shielding/` that returns a `Tally` object. Add a factory entry in `workflow.runner._resolve_engine`.
-- **New tally.** Subclass `pyshield_smr.transport.tally.Tally`; the runner will pick it up if listed in the YAML spec under `tallies`.
-- **New source.** Subclass `pyshield_smr.sources.source_term.SourceBase`.
-- **New post-processor.** Subclass `pyshield_smr.shielding.PostProcessor`.
-- **New schema version.** Bump `SCHEMA_VERSION` in `workflow/schema.py` and document the migration in `docs/guides/SCHEMA_MIGRATIONS.md`.
+There is no engine factory, no `Tally` base class, no `SourceBase`, no `PostProcessor`, and no `docs/guides/SCHEMA_MIGRATIONS.md`.
+
+- **Another transport engine.** `Runner.run_transport` branches on `spec["engine"]` with two string comparisons (`point_kernel`, `monte_carlo`). A new engine needs a new branch.
+- **Tallies.** `EnergyTally` and `SurfaceTally` live in `pyshield_smr/transport/tally.py`. The runner does not read a `tallies` section.
+- **Sources.** `build_source_from_inventory` in `pyshield_smr/sources/source_term.py` builds `LineSource` lines from `data/decay_chains/short.json`.
+- **Schema.** `SCHEMA_VERSION` is in `workflow/schema.py`. A major-version mismatch raises `RuntimeError` and tells the caller to edit the spec by hand.
 
 ## 5. Invariants
 
 - `pyshield_smr.physics` has no dependencies inside the package (only NumPy / SciPy).
 - `pyshield_smr.transport` depends on `physics` only.
 - `pyshield_smr.shielding` depends on `physics` and `transport`.
-- `pyshield_smr.workflow` depends on everything; nothing depends on `workflow`.
+- `pyshield_smr.workflow` imports physics, shielding, sources, transport, and io. `pyshield_smr.cli` imports the workflow runner. Physics, transport, and shielding do not import workflow.
 - `pyshield_smr.io` does not import from `workflow`.
 
 ## 6. Quality-management hooks
 
 - `tasks/audit_process.py` enforces file presence, cross-links, registry consistency, memory freshness.
-- `tests/unit/` pins physics.
-- `tests/integration/` pins end-to-end behaviour with regression values in `tests/integration/regression_values.yaml`.
+- `tests/unit/` covers physics constants, buildup, attenuation, dose, geometry, source terms, zoning, YAML loading, and part of the point-kernel API. It does not cover activation, Monte Carlo, UQ, the ALARP optimiser, HPC, DPA, gamma heating, or detector response. On Python 3.12, `pytest -q` reported 11 failed and 243 passed.
+- `tests/integration/` compares four point-kernel cases with `tests/integration/regression_values.yaml`. Those 12 tests passed.
 - Every workflow run records a QA manifest with SHA-256 hashes of every data file it touched.
 
 ## 7. Performance notes

@@ -114,39 +114,34 @@ Source       Layer 1   Layer 2  ...  Layer N      Receptor
              x₀        x₁       ...  x_{N-1}  x_N
 ```
 
-Particles travel along the z-axis (1D) with isotropic source sampling. Ray tracing is performed by `SlabStack.traverse(position, direction)`, returning a list of `(material, path_length)` tuples.
-
-**Extension to 3D**: The geometry module exports a `GeometryInterface` ABC; a 3D voxel or CAD geometry can be plugged in without changing the transport loop. Currently only `SlabStack` is implemented.
+`SlabStack` is a 1-D stack. `SlabStack.traverse(x_m, mu)` takes a position and a direction cosine `mu`, and returns `(material, path_length)` pairs. It does not take a 3-D direction vector. There is no `GeometryInterface`. `Sphere` is also defined in `transport/geometry.py` and is not used by `MonteCarloPhoton`.
 
 ## Parallel Execution
 
 For large histories counts, the transport loop is parallelised using `multiprocessing`:
 
 ```python
-runner = ParallelMCRunner(spec, n_workers=8)
-tallies = runner.run()   # distributes N/8 histories per worker
+from pyshield_smr.hpc.parallel import run_histories_parallel
+
+result = run_histories_parallel(mc_constructor, n_histories, n_workers=8)
 ```
 
-Independent RNG streams are seeded using `numpy.random.SeedSequence` with spawn, ensuring statistical independence between workers. See `pyshield_smr/hpc/parallel.py`.
+`run_histories_parallel` seeds workers with `numpy.random.SeedSequence.spawn`. There is no `ParallelMCRunner` class. The workflow runner does not call this function.
 
 ## Comparison with Point-Kernel
 
-See `docs/theory/02_point_kernel.md` §"Validation & Comparison with Monte Carlo" for the benchmark protocol. Short rule of thumb:
-
-- μx < 5: point-kernel and MC agree within ±5%; use point-kernel for speed.
-- μx 5–15: MC is the reference; point-kernel deviates due to buildup factor breakdown.
-- μx > 15: Monte Carlo only; statistical noise is the limiting factor.
+`docs/theory/02_point_kernel.md` discusses where a point-kernel buildup factor is a poor substitute for transport. This repository has not measured point-kernel versus Monte Carlo agreement, and the test suite does not compare the two. Do not treat a ±5% or ±10% band as a result from this code.
 
 ## Code Module Map
 
 | File | Key functions |
 |---|---|
-| `transport/monte_carlo.py` | `run_monte_carlo()`, `_simulate_history()`, `_sample_compton_scatter()` |
-| `transport/variance_reduction.py` | `implicit_capture_weight()`, `russian_roulette()`, `split_particle()` |
-| `transport/tally.py` | `Tally`, `TallyResult`, `TallyResult.check_convergence()` |
-| `transport/geometry.py` | `SlabStack`, `traverse()` |
-| `transport/mcnp_io.py` | MCNP input deck I/O for cross-verification |
-| `hpc/parallel.py` | `ParallelMCRunner` |
+| `transport/monte_carlo.py` | `MonteCarloPhoton`, `MonteCarloPhoton.run`, `photon_transmission` |
+| `transport/variance_reduction.py` | `WeightWindow`, `roulette_and_split` |
+| `transport/tally.py` | `EnergyTally`, `SurfaceTally` |
+| `transport/geometry.py` | `SlabStack`, `Sphere`, `SlabStack.traverse` |
+| `transport/mcnp_io.py` | `emit_slab_input`, `read_mctal_like` |
+| `hpc/parallel.py` | `run_histories_parallel` |
 
 ## References
 

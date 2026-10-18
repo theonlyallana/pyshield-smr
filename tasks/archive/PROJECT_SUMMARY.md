@@ -1,3 +1,5 @@
+> Historical session note. It describes `AGENTS.md`, `CHANGELOG.md`, `docs/guides/QA.md`, and `.github/workflows/ci.yml` as if they are in the tree. Those files were deleted. The author name is Andrew Allan. The repository is https://github.com/theonlyallana/pyshield-smr.
+
 # PyShield-SMR: Project Summary
 
 ## What is This?

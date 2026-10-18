@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { file = "LICENSE" }
 authors = [
-    { name = "Andrew Allana" }
+    { name = "Andrew Allan" }
 ]
 keywords = [
     "radiation-physics",
@@ -56,6 +56,11 @@ viz = [
     "matplotlib>=3.8",
     "pyvista>=0.43",
 ]
+
+[project.urls]
+Homepage = "https://github.com/theonlyallana/pyshield-smr"
+Repository = "https://github.com/theonlyallana/pyshield-smr"
+Issues = "https://github.com/theonlyallana/pyshield-smr/issues"
 
 [project.scripts]
 pyshield = "pyshield_smr.cli.main:main"

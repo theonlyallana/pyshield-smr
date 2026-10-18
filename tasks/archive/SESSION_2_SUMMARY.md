@@ -1,3 +1,5 @@
+> Historical session note (April 2026). Files it names were later deleted: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `docs/guides/QA.md`, `CHANGELOG.md`, `requirements.txt`, and `.github/workflows/ci.yml`. The repository is https://github.com/theonlyallana/pyshield-smr. The author name is Andrew Allan. Do not treat the line counts or the "create the repo" steps below as the current tree.
+
 # Session 2 Work Summary
 
 ## Overview
@@ -384,7 +386,7 @@ open htmlcov/index.html
 
 ### To Upload to GitHub
 
-1. **Create repo**: `https://github.com/YOUR_USERNAME/pyshield-smr`
+1. **Create repo**: `https://github.com/theonlyallana/pyshield-smr`
 
 2. **Initialize Git** (if not already):
    ```bash
@@ -406,7 +408,7 @@ open htmlcov/index.html
 
 3. **Push to GitHub**:
    ```bash
-   git remote add origin https://github.com/YOUR_USERNAME/pyshield-smr.git
+   git remote add origin https://github.com/theonlyallana/pyshield-smr.git
    git branch -M main
    git push -u origin main
    ```

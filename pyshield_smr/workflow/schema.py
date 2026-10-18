@@ -366,8 +366,8 @@ def migrate_spec(spec: Dict[str, Any]) -> Tuple[Dict[str, Any], List[MigrationSt
     if spec_major != target_major:
         raise RuntimeError(
             f"Spec declares schema v{spec_version} but runner is at v{SCHEMA_VERSION}. "
-            f"Major version mismatch requires manual migration. "
-            f"See docs/guides/SCHEMA_MIGRATIONS.md for instructions."
+            f"Major version mismatch requires a manual edit of the spec. "
+            f"This repository does not include a schema migration guide."
         )
 
     # Apply minor version migrations (backward-compatible)

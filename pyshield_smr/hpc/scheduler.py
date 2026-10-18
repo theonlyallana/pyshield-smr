@@ -121,7 +121,7 @@ def emit_slurm_script(
         "#!/bin/bash",
         "",
         "# PyShield-SMR SLURM Job Script",
-        "# This script runs a parallel radiation shielding analysis on an HPC cluster",
+        "# This script runs `pyshield run` on the cluster. It does not split histories.",
         "",
     ]
 
@@ -164,10 +164,10 @@ def emit_slurm_script(
         "# Create output directory",
         f"mkdir -p {output_dir}",
         "",
-        "# Run analysis with automatic parallelization",
+        "# `pyshield run` has no --output-dir flag. Reports land under reports/.",
+        "# A monte_carlo spec does not execute Monte Carlo in the current runner.",
         "echo 'Starting analysis...'",
-        f"python -m pyshield_smr.cli.main run {spec_path} \\",
-        f"  --output-dir {output_dir}",
+        f"python -m pyshield_smr.cli.main run {spec_path}",
         "",
         "if [ $? -eq 0 ]; then",
         "  echo 'Analysis completed successfully'",
@@ -176,7 +176,7 @@ def emit_slurm_script(
         "  exit 1",
         "fi",
         "",
-        "echo \"Results written to {output_dir}\"",
+        f"echo \"Runner reports are under reports/. Requested output_dir was {output_dir}\"",
     ])
 
     return "\n".join(script_lines)
@@ -209,7 +209,7 @@ def emit_pbs_script(
         "#!/bin/bash",
         "",
         "# PyShield-SMR PBS Job Script",
-        "# This script runs a parallel radiation shielding analysis via PBS",
+        "# This script runs `pyshield run` via PBS. It does not split histories.",
         "",
     ]
 
@@ -251,12 +251,11 @@ def emit_pbs_script(
         "echo \"PBS_NODEFILE: $PBS_NODEFILE\"",
         "echo \"PBS_NUM_PPN: $PBS_NUM_PPN\"",
         "",
-        "# Run analysis",
+        "# `pyshield run` has no --output-dir flag. Reports land under reports/.",
         "echo 'Starting analysis...'",
-        f"python -m pyshield_smr.cli.main run {spec_path} \\",
-        f"  --output-dir {output_dir}",
+        f"python -m pyshield_smr.cli.main run {spec_path}",
         "",
-        "echo \"Results written to {output_dir}\"",
+        f"echo \"Runner reports are under reports/. Requested output_dir was {output_dir}\"",
     ])
 
     return "\n".join(script_lines)

@@ -37,31 +37,34 @@ reviewer is aware of potential issues.
 
 ## Example Manifest
 
+The object below shows the JSON keys. The numbers are not a measured run.
+The runner writes this file to ``reports/<timestamp>_<case>/qa_manifest.json``,
+not ``reports/latest/``.
+
     {
-      "code_version": "commit abc123def456",
-      "pyshield_version": "0.1.0",
-      "timestamp": "2026-04-14T14:32:15.123456Z",
-      "runtime_seconds": 42.56,
+      "code_version": null,
+      "pyshield_version": "<package version>",
+      "timestamp": "<UTC timestamp>",
+      "runtime_seconds": 0.0,
       "platform": {
-        "python_version": "3.11.2",
-        "os": "Linux",
-        "os_version": "5.15.0",
-        "machine": "x86_64"
+        "python_version": "<platform.python_version()>",
+        "os": "<platform.system()>",
+        "os_version": "<platform.release()>",
+        "machine": "<platform.machine()>"
       },
       "data_files": {
-        "data/cross_sections/photon_mass_attenuation.json": "a1b2c3d4e5...",
-        "data/decay_chains/short.json": "f6g7h8i9j0..."
+        "data/cross_sections/photon_mass_attenuation.json": "<sha256>"
       },
       "warnings": [],
       "analysis_metadata": {
-        "case_name": "Lead-lined container 100mm",
+        "case_name": "<spec case_name>",
         "engine": "point_kernel",
-        "dose_rate_sv_per_h": 1.234e-6,
-        "zone": "supervised"
+        "dose_rate_sv_per_h": null,
+        "zone": null
       }
     }
 
-The QA manifest is machine-readable JSON, parseable by auditors and CI systems.
+The QA manifest is machine-readable JSON.
 """
 
 from __future__ import annotations
@@ -160,7 +163,7 @@ def build_qa_manifest(
 
         elapsed = time.perf_counter() - start_time
         manifest = build_qa_manifest(
-            pyshield_version="0.1.0",
+            pyshield_version="0.1.1",
             runtime_seconds=elapsed,
             data_files_to_hash=[
                 "data/cross_sections/photon_mass_attenuation.json",
@@ -170,11 +173,11 @@ def build_qa_manifest(
             analysis_metadata={
                 "case_name": "Lead-lined container",
                 "engine": "point_kernel",
-                "dose_rate_sv_per_h": 1.23e-6,
-                "zone": "supervised"
+                "dose_rate_sv_per_h": None,
+                "zone": None
             }
         )
-        manifest.write_to_file("reports/latest/qa_manifest.json")
+        manifest.write_to_file("reports/<timestamp>_<case>/qa_manifest.json")
 
     Args:
         pyshield_version: Package version string (e.g., "0.1.0")

@@ -2,64 +2,47 @@
 
 ## Overview
 
-For large Monte Carlo runs (N > 10⁷ histories) or parameter sweeps, PyShield-SMR supports parallel execution on HPC clusters via SLURM and PBS/Torque schedulers. The `pyshield_smr/hpc/` module handles job script generation, worker coordination, and result collection.
+`pyshield_smr/hpc/` has two separate pieces. Neither is wired to `pyshield run`.
 
-## Architecture
+- `parallel.py` exposes `run_histories_parallel`. It is not named `ParallelMCRunner`. The CLI has no `--workers` flag, and `Runner._run_monte_carlo` does not call this function.
+- `scheduler.py` exposes `emit_slurm_script` and `emit_pbs_script`. They return a shell script as a string. `pyshield emit-slurm` does not call `emit_slurm_script`; it writes a shorter placeholder and logs that SLURM generation is not implemented. There is no `pyshield emit-pbs` command.
 
-```
-┌─────────────────────────────────────────────┐
-│  User: pyshield run config.yaml --workers N │
-└──────────────────────┬──────────────────────┘
-                       │
-           ┌───────────▼───────────┐
-           │  ParallelMCRunner     │  (pyshield_smr/hpc/parallel.py)
-           │  Split N_total into   │
-           │  N_total/workers each │
-           └──┬──────────┬────────┘
-         Worker 1      Worker 2  ...  Worker N
-         seed = s1     seed = s2      seed = sN
-         (numpy SeedSequence.spawn)
-              │              │
-           Tally 1        Tally 2
-              └──────┬───────┘
-                     │ merge
-               Combined tally
+## Local parallel execution
+
+Call the function directly. `mc_constructor` must return a `MonteCarloPhoton`:
+
+```python
+from pyshield_smr.hpc.parallel import run_histories_parallel
+from pyshield_smr.transport.monte_carlo import MonteCarloPhoton
+
+result = run_histories_parallel(
+    mc_constructor=lambda: MonteCarloPhoton(...),
+    n_histories=1000,
+    n_workers=2,
+    root_seed=42,
+)
 ```
 
-Workers share no state; each receives an independent RNG seed via `numpy.random.SeedSequence.spawn(n_workers)`, guaranteeing statistically independent histories.
-
-## Local Parallel Execution
-
-For multi-core workstations:
-
-```bash
-# Run with 8 workers (uses multiprocessing)
-pyshield run examples/02_monte_carlo_transmission/config.yaml --workers 8
-
-# Or programmatically:
-from pyshield_smr.hpc.parallel import ParallelMCRunner
-runner = ParallelMCRunner(spec, n_workers=8)
-result = runner.run()
-```
-
-No cluster scheduler is needed; `multiprocessing.Pool` distributes histories across CPU cores.
+`run_histories_parallel` splits histories across processes and seeds them with `numpy.random.SeedSequence.spawn`. This guide does not quote a wall-clock time for that call.
 
 ## SLURM Cluster Execution
 
 ### 1. Generate the SLURM job script
 
-```bash
-pyshield emit-slurm \
-  examples/02_monte_carlo_transmission/config.yaml \
-  job.slurm \
-  --nodes 4 \
-  --tasks-per-node 8 \
-  --time 02:00:00 \
-  --partition compute \
-  --account my_project
+```python
+from pathlib import Path
+from pyshield_smr.hpc.scheduler import SlurmConfig, emit_slurm_script
+
+script = emit_slurm_script(
+    SlurmConfig(nodes=2, ntasks_per_node=8, time="02:00:00"),
+    "examples/01_point_kernel_shielding/config.yaml",
+)
+Path("job.slurm").write_text(script)
 ```
 
-This generates `job.slurm` with the correct MPI/multiprocessing layout for the target cluster.
+The generated script calls `python -m pyshield_smr.cli.main run <spec>`. That command has no `--output-dir` flag. For a point-kernel spec it runs the dose calculation. For `examples/02_monte_carlo_transmission/config.yaml` the runner warns and does not transport photons. The script does not call `srun` or `run_histories_parallel`.
+
+`pyshield emit-slurm` accepts `spec`, `output`, `--nodes`, `--tasks-per-node`, and `--time`. It does not accept `--partition` or `--account`, and it does not use `emit_slurm_script`.
 
 ### 2. Review and customise
 
@@ -69,24 +52,7 @@ cat job.slurm
 
 Generated script structure:
 
-```bash
-#!/bin/bash
-#SBATCH --job-name=pyshield_mc
-#SBATCH --nodes=4
-#SBATCH --ntasks-per-node=8
-#SBATCH --time=02:00:00
-#SBATCH --partition=compute
-#SBATCH --account=my_project
-#SBATCH --output=logs/slurm_%j.out
-
-module load python/3.11
-source .venv/bin/activate
-
-srun python -m pyshield_smr.hpc.scheduler \
-  --spec examples/02_monte_carlo_transmission/config.yaml \
-  --workers 32 \
-  --output-dir reports/cluster_run
-```
+Read the file `emit_slurm_script` returned. Do not assume it contains `srun`, `--workers`, or `--account`. Those strings are not in `scheduler.py`.
 
 ### 3. Submit
 
@@ -94,37 +60,30 @@ srun python -m pyshield_smr.hpc.scheduler \
 sbatch job.slurm
 ```
 
-### 4. Monitor
+### 4. Collect results
 
-```bash
-squeue -u $USER
-tail -f logs/slurm_<job_id>.out
-```
-
-### 5. Collect results
-
-Results are written to the `--output-dir` on the cluster filesystem. Copy to local machine with:
-
-```bash
-rsync -avz cluster_user@hpc.example.ac.uk:~/pyshield-smr/reports/cluster_run/ ./reports/
-```
+The generated script does not set an SBATCH output path and does not pass `--output-dir`. `pyshield run` writes `reports/<timestamp>_<case>/` in the job's working directory.
 
 ## PBS/Torque Cluster Execution
 
-```bash
-pyshield emit-pbs \
-  examples/02_monte_carlo_transmission/config.yaml \
-  job.pbs \
-  --ncpus 64 \
-  --walltime 02:00:00
-qsub job.pbs
+There is no `pyshield emit-pbs` subcommand. Build the script in Python:
+
+```python
+from pathlib import Path
+from pyshield_smr.hpc.scheduler import PBSConfig, emit_pbs_script
+
+script = emit_pbs_script(
+    PBSConfig(nodes=1, ppn=4, walltime="00:30:00"),
+    "examples/01_point_kernel_shielding/config.yaml",
+)
+Path("job.pbs").write_text(script)
 ```
 
-PBS job script generation follows the same pattern as SLURM; see `pyshield_smr/hpc/scheduler.py → emit_pbs_script()`.
+Submit with `qsub` only after you have read the script. It runs the same `pyshield run` command as the SLURM helper.
 
 ## Parallelism Strategy
 
-PyShield-SMR uses **embarrassingly parallel** decomposition: the total history count `N` is divided equally across all workers. Each worker runs `N/workers` histories, then sends its `TallyResult` back to the controller for merging.
+`run_histories_parallel` splits `n_histories` across workers and returns a `ParallelMCResult`. It does not return a `TallyResult`. The workflow runner does not call it.
 
 **RNG independence**: Each worker is seeded with a child of a root `numpy.random.SeedSequence`:
 
@@ -137,44 +96,27 @@ This guarantees that child streams are statistically independent and reproducibl
 
 ## Scaling
 
-| Workers | N histories | Wall time (est.) | Relative error |
-|---|---|---|---|
-| 1 | 10⁶ | ~30 s | ~1.0% |
-| 8 | 10⁷ | ~40 s | ~0.3% |
-| 32 | 10⁸ | ~50 s | ~0.1% |
+No wall-clock times or relative errors for parallel runs were measured in this repository.
 
-(Times are illustrative for a simple slab geometry on modern hardware.)
-
-The `qa_manifest.json` records:
-- `n_workers` used
-- `rng_root_seed` (for reproducibility)
-- Wall-clock time per worker
+`qa_manifest.json` does not record `n_workers`, an RNG seed, or per-worker wall time. It records the package version, platform, data-file SHA-256 hashes, warnings, and the analysis metadata the runner stored.
 
 ## Memory Considerations
 
-Each worker holds at most `n_histories_per_worker × sizeof(photon_state)` in memory (~few hundred bytes per photon). For 10⁷/worker, this is ~4 GB peak; ensure nodes have ≥ 8 GB RAM per task.
-
-For very large problems (N > 10⁹), use streaming tallies rather than storing full histories — contact the project maintainer (see `AGENTS.md`).
+This repository has no measured memory profile for `run_histories_parallel`, and it has no streaming-tally mode. `AGENTS.md` is not in the tree.
 
 ## Code Module Map
 
 | File | Purpose |
 |---|---|
-| `hpc/parallel.py` | `ParallelMCRunner` — local multiprocessing runner |
-| `hpc/scheduler.py` | `emit_slurm_script()`, `emit_pbs_script()` |
-| `cli/main.py` | `emit-slurm` and `emit-pbs` CLI subcommands |
+| `hpc/parallel.py` | `run_histories_parallel`, `ParallelMCResult` |
+| `hpc/scheduler.py` | `emit_slurm_script`, `emit_pbs_script`, `SlurmConfig`, `PBSConfig` |
+| `cli/main.py` | `emit-slurm` writes a placeholder script. No `emit-pbs` subcommand |
 
 ## Troubleshooting
 
 **Workers hang / no output**: Check that the compute nodes can see the data directory (NFS mount or pre-copied). All data files are read at worker startup.
 
-**Different results run-to-run**: If `rng_root_seed` is not fixed in the YAML spec, a new random seed is chosen each run. Fix the seed for reproducibility:
-
-```yaml
-monte_carlo:
-  n_histories: 1000000
-  rng_seed: 42
-```
+**Different results run-to-run**: `run_histories_parallel` takes `root_seed` as a Python argument (default 42). The runner does not read `rng_seed` from the YAML spec, because it does not run Monte Carlo.
 
 **SLURM script rejected**: Ensure Python 3.10+ and `pyshield_smr` are available on compute nodes. Pre-create `.venv` on the shared filesystem before job submission.
 

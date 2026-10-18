@@ -132,10 +132,7 @@ The buildup factor approach has known limitations:
 4. **Isotropic point source assumption**: Real sources (fuel rods, activated components) have structure
 5. **No spatial correlations**: Buildup at one energy assumed independent of other energies
 
-**Best practices**:
-- For μx < 5: Trust Taylor two-term to within ±5%
-- For 5 < μx < 10: Expect ±10% uncertainty; use UQ to quantify
-- For μx > 10: Consider Monte Carlo validation; add design margin (e.g., ×1.5 on dose)
+The percent bands sometimes quoted for Taylor buildup (a few percent at small optical depth, larger past about 10 mean free paths) are not measurements from this repository's tests. The runner also does not run the UQ sampler.
 
 ## Code Architecture
 
@@ -166,17 +163,13 @@ When is point-kernel valid?
 | Scenario | Point-Kernel | Monte Carlo |
 |----------|---------|-----------|
 | Thin shielding (μx < 2) | ✓ Excellent (B ≈ 1) | ✓ Slower, noisier |
-| Medium shielding (2 < μx < 10) | ✓ Good (±10%) | ✓ Gold standard, slower |
-| Thick shielding (μx > 10) | ✗ Poor (buildup formula breaks down) | ✓ Only reliable method |
-| Complex geometry | ✗ Limited to slabs | ✓ Handles arbitrary geometry |
-| Multi-nuclide sources | ✓ Fast | ✓ More complex code |
-| Design optimization | ✓ Fast (100s of designs/second) | ✗ Too slow for optimization loop |
+| Medium shielding (2 < μx < 10) | Buildup approximation; this repo has not measured the error | Monte Carlo in `transport/monte_carlo.py` is also a slab solver |
+| Thick shielding (μx > 10) | Taylor form is outside its comfortable range | Not measured here |
+| Complex geometry | `SlabStack` only | `MonteCarloPhoton` takes a `SlabStack` only |
+| Multi-nuclide sources | Point kernel accepts several lines | `MonteCarloPhoton` is constructed at one energy |
+| Design optimization | `optimise_shielding` exists and is not called by the runner | The runner does not run Monte Carlo |
 
-**Validation strategy** (from example/02):
-1. Run point-kernel on a simple slab geometry
-2. Run Monte Carlo on the same geometry with 10⁶–10⁸ histories
-3. Compare dose rates: should agree within ±10%
-4. If disagreement > 10%: investigate buildup factor validity
+Example 02 does not produce a Monte Carlo dose: the runner logs that Monte Carlo is not integrated. This repository has not compared point-kernel and Monte Carlo dose rates, so it does not state a ±10% agreement.
 
 **Expected agreement sources of error**:
 - MC statistical error: ±√(1/N_histories)

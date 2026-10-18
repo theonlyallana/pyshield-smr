@@ -1,21 +1,22 @@
 ---
-last_updated: 2026-04-15
+last_updated: 2026-10-18
 ---
 
 # project.md
 
 ## Current state
 
-v0.1.1 — governance repair and bug-fix session complete (2026-04-15).
+v0.1.1. Checked on 2026-10-18 with Python 3.12.
 
-All governance checks pass (13/13 in `audit_process.py`). Four code bugs found and fixed during first real execution of the examples. Regression values established. Full unit test suite written (8 test files covering physics, geometry, source terms, dose conversion, zoning, YAML loading, runner, and integration regressions).
+`python tasks/audit_process.py --verbose` fails 5 of 13 checks. Missing files: `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `docs/guides/QA.md`. `tasks/memory/MEMORY.md` and `tasks/memory/feedback.md` are still dated April 2026, so `memory-freshness` still fails. `tasks/process_state.md` has `next_review_due: 2026-07-14`.
+
+`pytest -q` reported 11 failed, 243 passed. `pytest -q tests/integration` reported 12 passed. Unit tests are 10 files, not 8. There is no coverage of activation, Monte Carlo, UQ, the ALARP optimiser, or HPC.
 
 ## What is working end-to-end
 
-- Point-kernel analysis for all five examples: YAML spec → source term → geometry → transport → dose rate → zone → QA manifest → reports.
-- Governance audit: all 13 checks pass including the new `check_examples_consistency` check.
-- Unit tests: 8 files, coverage across all major modules.
-- Integration regression tests: 4 cases against `regression_values.yaml`.
+- Point-kernel path for examples 01, 03, 04, and 05: YAML spec → prescribed source → slab → point-kernel dose → zone → QA manifest → `report.md`, `report.html`, `qa_manifest.json`, `spec_used.yaml`.
+- Example 01 dose rate printed by the runner: 1.721e-08 Sv/h, zone uncontrolled.
+- Example 02 does not produce a dose. The runner warns that Monte Carlo is not integrated.
 
 ## What is NOT yet wired into the runner
 

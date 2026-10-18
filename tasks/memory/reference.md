@@ -1,5 +1,5 @@
 ---
-last_updated: 2026-04-15
+last_updated: 2026-10-18
 ---
 
 # reference.md
@@ -22,10 +22,10 @@ last_updated: 2026-04-15
 | IO | `pyshield_smr/io/` (yaml_config, report) |
 | Nuclear data | `data/cross_sections/`, `data/buildup_factors/`, `data/flux_to_dose/`, `data/decay_chains/` |
 | Examples | `examples/01_point_kernel_shielding/`, `02_monte_carlo_transmission/`, `03_activation_decay/`, `04_alarp_optimization/`, `05_smr_compartment/` |
-| Unit tests | `tests/unit/` (8 files) |
+| Unit tests | `tests/unit/` (10 files) |
 | Integration tests | `tests/integration/test_regression.py` + `regression_values.yaml` |
 | Theory docs | `docs/theory/01_transport_theory.md` through `07_alarp.md` + `PHYSICS_CHANGELOG.md` |
-| Guide docs | `docs/guides/QA.md`, `HPC.md`, `GETTING_STARTED.md`, `MCNP_INTEROP.md` |
+| Guide docs | `docs/guides/GETTING_STARTED.md`, `HPC.md`, `MCNP_INTEROP.md`. No `QA.md` |
 | Governance | `tasks/PROCESS_ARCHITECTURE.md`, `audit_process.py`, `agents/registry.md` |
 | Session archives | `tasks/archive/` (PROJECT_SUMMARY.md, SESSION_2_SUMMARY.md) |
 
@@ -40,8 +40,8 @@ last_updated: 2026-04-15
 | Run governance audit | `python tasks/audit_process.py --verbose` |
 | Full verification gate | `pytest -q && python tasks/audit_process.py --verbose` |
 | Run example (point-kernel) | `pyshield run examples/01_point_kernel_shielding/config.yaml` |
-| Run example (MC, parallel) | `pyshield run examples/02_monte_carlo_transmission/config.yaml --workers 4` |
-| Emit SLURM job script | `pyshield emit-slurm examples/02_monte_carlo_transmission/config.yaml job.slurm --nodes 2` |
+| Run example 2 | `pyshield run examples/02_monte_carlo_transmission/config.yaml` (warns; no dose; no `--workers`) |
+| SLURM helper | `emit_slurm_script` in `pyshield_smr/hpc/scheduler.py`. `pyshield emit-slurm` does not call it |
 
 ## Conventions
 
