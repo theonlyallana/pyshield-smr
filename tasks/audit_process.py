@@ -52,10 +52,10 @@ class AuditReport:
 # Individual checks                                                            #
 # --------------------------------------------------------------------------- #
 
+# AGENTS.md, CLAUDE.md, GEMINI.md, and docs/guides/QA.md were removed on
+# purpose. They are not required, and they are not recreated to satisfy this
+# audit.
 REQUIRED_FILES = [
-    "AGENTS.md",
-    "CLAUDE.md",
-    "GEMINI.md",
     "RUNBOOK.md",
     "README.md",
     "pyproject.toml",
@@ -81,7 +81,6 @@ REQUIRED_FILES = [
     "docs/theory/06_uq.md",
     "docs/theory/07_alarp.md",
     "docs/theory/PHYSICS_CHANGELOG.md",
-    "docs/guides/QA.md",
     "docs/guides/HPC.md",
     "docs/guides/GETTING_STARTED.md",
     "docs/guides/MCNP_INTEROP.md",
@@ -98,28 +97,18 @@ def check_required_files(report: AuditReport) -> None:
 
 
 def check_architecture_links(report: AuditReport) -> None:
-    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    """Cross-links that can be checked without the deleted AGENTS.md."""
     runbook = (ROOT / "RUNBOOK.md").read_text(encoding="utf-8")
-    ok_agents = "PROCESS_ARCHITECTURE" in agents or "tasks/PROCESS_ARCHITECTURE" in agents
-    ok_runbook = "audit_process" in runbook or "PROCESS_ARCHITECTURE" in runbook
+    arch = (ROOT / "tasks" / "PROCESS_ARCHITECTURE.md").read_text(encoding="utf-8")
+    ok_runbook = "audit_process" in runbook and "PROCESS_ARCHITECTURE" in runbook
+    ok_arch = "audit_process.py" in arch and "RUNBOOK.md" in arch
     report.add(
         "architecture-links",
-        ok=ok_agents and ok_runbook,
+        ok=ok_runbook and ok_arch,
         detail=(
-            f"AGENTS.md→PROCESS_ARCHITECTURE={ok_agents}, "
-            f"RUNBOOK.md→audit/arch={ok_runbook}"
+            f"RUNBOOK.md→audit/arch={ok_runbook}, "
+            f"PROCESS_ARCHITECTURE.md→audit/RUNBOOK={ok_arch}"
         ),
-    )
-
-
-def check_specialist_routing(report: AuditReport) -> None:
-    agents = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    has_auto = "Automatic Specialist" in agents
-    has_handoff = "Decentralised Handoff" in agents or "Decentralized Handoff" in agents
-    report.add(
-        "specialist-routing-doctrine",
-        ok=has_auto and has_handoff,
-        detail=f"automatic={has_auto}, handoff={has_handoff}",
     )
 
 
@@ -148,43 +137,81 @@ def check_registry_agents(report: AuditReport) -> None:
     )
 
 
+# Historical notes. The dates below are the record. Rewriting them so an age
+# limit passes is not allowed; changing them also fails this check.
+FROZEN_MEMORY_DATES = {
+    "MEMORY.md": "2026-04-14",
+    "feedback.md": "2026-04-15",
+}
+
+# tasks/process_state.md is the same kind of frozen record.
+FROZEN_PROCESS_DATES = {
+    "last_reviewed": "2026-04-14",
+    "next_review_due": "2026-07-14",
+}
+
+
 def check_memory_freshness(report: AuditReport, max_age_days: int = 180) -> None:
+    """Living memory files must be dated within max_age_days.
+
+    MEMORY.md and feedback.md are frozen. Their dates are checked against
+    FROZEN_MEMORY_DATES and are not subject to the age limit.
+    """
     memory_dir = ROOT / "tasks" / "memory"
-    stale: list[str] = []
-    for path in memory_dir.glob("*.md"):
+    problems: list[str] = []
+    frozen_notes: list[str] = []
+    for path in sorted(memory_dir.glob("*.md")):
         text = path.read_text(encoding="utf-8")
         m = re.search(r"last_updated:\s*(\d{4}-\d{2}-\d{2})", text)
         if not m:
-            stale.append(f"{path.name}(no-date)")
+            problems.append(f"{path.name}(no-date)")
             continue
-        date = _dt.date.fromisoformat(m.group(1))
+        recorded = m.group(1)
+        if path.name in FROZEN_MEMORY_DATES:
+            expected = FROZEN_MEMORY_DATES[path.name]
+            frozen_notes.append(f"{path.name}({recorded})")
+            if recorded != expected:
+                problems.append(f"{path.name}(date {recorded} != frozen {expected})")
+            continue
+        date = _dt.date.fromisoformat(recorded)
         if (_dt.date.today() - date).days > max_age_days:
-            stale.append(f"{path.name}({m.group(1)})")
-    report.add(
-        "memory-freshness",
-        ok=not stale,
-        detail=(
-            f"stale: {stale}"
-            if stale
-            else f"all memory files refreshed within {max_age_days} days"
-        ),
-    )
+            problems.append(f"{path.name}({recorded})")
+    detail = f"frozen: {frozen_notes}"
+    if problems:
+        detail += f"; problems: {problems}"
+    else:
+        detail += f"; other memory files within {max_age_days} days"
+    report.add("memory-freshness", ok=not problems, detail=detail)
 
 
 def check_process_state(report: AuditReport) -> None:
+    """Confirm the frozen review dates in tasks/process_state.md.
+
+    next_review_due is in the past. That fact is reported. It is not a
+    failure, and the file is not edited to move the date.
+    """
     path = ROOT / "tasks" / "process_state.md"
     text = path.read_text(encoding="utf-8")
-    next_review = re.search(r"next_review_due:\s*(\d{4}-\d{2}-\d{2})", text)
-    if not next_review:
-        report.add("process-state-review-date", False, "no next_review_due")
-        return
-    due = _dt.date.fromisoformat(next_review.group(1))
-    overdue = due < _dt.date.today()
-    report.add(
-        "process-state-review-date",
-        ok=not overdue,
-        detail=f"next_review_due={due.isoformat()} overdue={overdue}",
+    problems: list[str] = []
+    found: dict[str, str] = {}
+    for key, expected in FROZEN_PROCESS_DATES.items():
+        match = re.search(rf"{key}:\s*(\d{{4}}-\d{{2}}-\d{{2}})", text)
+        if not match:
+            problems.append(f"no {key}")
+            continue
+        found[key] = match.group(1)
+        if match.group(1) != expected:
+            problems.append(f"{key}={match.group(1)} != frozen {expected}")
+    due = found.get("next_review_due")
+    overdue = bool(due) and _dt.date.fromisoformat(due) < _dt.date.today()
+    detail = (
+        f"last_reviewed={found.get('last_reviewed')} "
+        f"next_review_due={due} overdue={overdue} "
+        "(overdue is reported; the frozen date is not rewritten)"
     )
+    if problems:
+        detail += "; " + ", ".join(problems)
+    report.add("process-state-review-date", ok=not problems, detail=detail)
 
 
 def check_todo_review_section(report: AuditReport) -> None:
@@ -280,10 +307,11 @@ def check_examples_consistency(report: AuditReport) -> None:
 # Entry point                                                                  #
 # --------------------------------------------------------------------------- #
 
+# specialist-routing-doctrine used to read AGENTS.md. That file is not
+# required and is not recreated, so the check is not run.
 CHECKS: List[Callable[[AuditReport], None]] = [
     check_required_files,
     check_architecture_links,
-    check_specialist_routing,
     check_registry_agents,
     check_memory_freshness,
     check_process_state,

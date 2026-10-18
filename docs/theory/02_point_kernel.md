@@ -108,9 +108,9 @@ def interpolate_mass_attenuation(material, energies_MeV):
 
 ### Buildup Factor Selection
 
-This framework uses **Taylor two-term** buildup factors (ANS-6.1.1 standard):
+This framework uses **Taylor two-term** buildup factors (ANS-6.1.1 standard). Stored `α₁` is negative on some rows and positive on others, so the growth coefficient is the magnitude:
 
-$$B = A \exp(-α_1 μx) + (1 - A) \exp(-α_2 μx)$$
+$$B = A \exp(|α_1| μx) + (1 - A) \exp(-α_2 μx)$$
 
 **Alternative forms** (not implemented, but documented):
 1. **Geometric Progression** (ANS-6.4.3): $B = (K-1) b^{μx} / (K - b^{μx})$

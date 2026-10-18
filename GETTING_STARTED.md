@@ -84,7 +84,7 @@ pip install -e .
 python tasks/audit_process.py --verbose
 ```
 
-The script runs 13 checks. It does not currently pass. On 2026-10-18, five checks failed because `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `docs/guides/QA.md` are missing, two checks then raise `FileNotFoundError` reading `AGENTS.md`, memory files dated April 2026 are older than 180 days, and `tasks/process_state.md` has `next_review_due: 2026-07-14`.
+The script runs 12 checks. On Python 3.12 it reported `audit: PASS (12 checks)`. `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `docs/guides/QA.md` are not required. `tasks/memory/MEMORY.md`, `tasks/memory/feedback.md`, and `tasks/process_state.md` keep their original dates.
 
 ### Test suite
 
@@ -92,7 +92,7 @@ The script runs 13 checks. It does not currently pass. On 2026-10-18, five check
 pytest -q
 ```
 
-On Python 3.12 this reported 11 failed and 243 passed. `pytest -q tests/integration` reported 12 passed. The failures are in `test_attenuation.py` (density scaling), `test_buildup.py` (two water cases), and `test_point_kernel.py` (8 tests pass `energies_MeV`, which `point_kernel_dose_rate` does not accept).
+On Python 3.12 this reported 254 passed. `pytest -q tests/integration` reported 12 passed.
 
 ---
 

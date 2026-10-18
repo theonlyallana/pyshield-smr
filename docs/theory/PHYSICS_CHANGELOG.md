@@ -15,6 +15,16 @@ Format:
 
 ---
 
+## 2026-10-18 correction to v0.1.1
+
+The package version stays 0.1.1. This entry corrects the buildup sign fix below. Lead doses are unchanged. The iron regression value moved, and its tolerance stayed at 5%.
+
+- **[Buildup] Growth coefficient is `|α₁|` of each stored row (commit: 2026-10-18)**:
+  - Previous: `B = A * exp(+α₁ μx) + (1-A) * exp(-α₂ μx)`, then `max(B, 1)`. Stored `α₁` is negative for water and for low-energy iron and concrete, so that exponent decayed and the clamp held those buildup factors at 1. Lead stores a positive `α₁`, so lead buildup was already growing.
+  - New: `B = A * exp(|α₁| μx) + (1-A) * exp(-α₂ μx)`. The magnitude is taken on each tabulated row before log-linear interpolation. There is no clamp.
+  - Impact: Water at 1 MeV and 4 mean free paths evaluates to 6.672 (ANSI/ANS-6.4.3 exposure buildup at that point is about 7.7). Lead at the same point stays 1.643. Example 01 (Co-60, 5 cm lead) stays 1.721e-8 Sv/h. Example 03 (Co-60, 5 cm iron) moves from 1.38e-7 to 1.652e-7 Sv/h. Examples 04 and 05 use lead buildup and stay at 2.431e-9 and 6.429e-13 Sv/h.
+  - Regression: `point_kernel_co60_iron_5cm` expected value updated from 1.38e-7 to 1.65e-7 Sv/h. Tolerance remains 5%. Water unit-test window moved from 2–5 onto 6–8, which contains the Taylor value and the ANSI value, and the test also requires water buildup to exceed lead. Checked on a grid of tabulated and mid-interval energies, τ from 0 to 20: B(0)=1, B≥1, and B non-decreasing for lead, iron, water, and ordinary concrete.
+
 ## v0.1.1 (2026-04-15)
 
 Bug-fix release. No new physics; corrects implementation errors that produced wrong dose-rate numbers in all point-kernel analyses.

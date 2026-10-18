@@ -67,7 +67,7 @@ There is no engine factory, no `Tally` base class, no `SourceBase`, no `PostProc
 ## 6. Quality-management hooks
 
 - `tasks/audit_process.py` enforces file presence, cross-links, registry consistency, memory freshness.
-- `tests/unit/` covers physics constants, buildup, attenuation, dose, geometry, source terms, zoning, YAML loading, and part of the point-kernel API. It does not cover activation, Monte Carlo, UQ, the ALARP optimiser, HPC, DPA, gamma heating, or detector response. On Python 3.12, `pytest -q` reported 11 failed and 243 passed.
+- `tests/unit/` covers physics constants, buildup, attenuation, dose, geometry, source terms, zoning, YAML loading, and the point-kernel API. It does not cover activation, Monte Carlo, UQ, the ALARP optimiser, HPC, DPA, gamma heating, or detector response. On Python 3.12, `pytest -q` reported 254 passed.
 - `tests/integration/` compares four point-kernel cases with `tests/integration/regression_values.yaml`. Those 12 tests passed.
 - Every workflow run records a QA manifest with SHA-256 hashes of every data file it touched.
 

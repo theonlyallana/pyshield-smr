@@ -6,10 +6,9 @@ Critical invariants:
     B increases monotonically with mu_x     — more shielding, more scatter accumulation
     B depends on material and energy        — non-trivial; not a constant
 
-Post-v0.1.1 bug-fix regression:
-    The formula was `A*exp(-a1*tau) + (1-A)*exp(-a2*tau)` which gives B<1 for the
-    stored parameters (A>1). Corrected to `A*exp(+a1*tau) + (1-A)*exp(-a2*tau)`.
-    These tests would have caught that bug.
+The growth coefficient is ``|alpha1|`` of the stored row. Water and low-energy
+iron and concrete store a negative ``alpha1``; lead stores a positive one.
+Using the signed value as ``exp(+alpha1 * tau)`` clamps water to 1.
 """
 
 import numpy as np
@@ -76,10 +75,20 @@ class TestReasonableMagnitude:
         )
 
     def test_water_1mev_tau4_in_range(self) -> None:
-        """Water buildup is generally higher than lead at same tau."""
+        """Water at 1 MeV and 4 mfp is several times the lead buildup.
+
+        Vendored coefficients (A=8.59, |α1|=0.089, α2=0.0764) evaluate to
+        B=6.672. ANSI/ANS-6.4.3 exposure buildup for water at 1 MeV and 4 mfp
+        is about 7.7. The window contains both and is tighter than a 2–5 band.
+        """
         B = float(taylor_buildup("water", 1.0, 4.0))
-        assert 2.0 <= B <= 5.0, (
-            f"B(water, 1 MeV, tau=4) = {B:.3f}, expected 2.0–5.0"
+        B_lead = float(taylor_buildup("lead", 1.0, 4.0))
+        assert B > B_lead, (
+            f"Water buildup {B:.3f} should exceed lead {B_lead:.3f} at 1 MeV, tau=4"
+        )
+        assert 6.0 <= B <= 8.0, (
+            f"B(water, 1 MeV, tau=4) = {B:.3f}, expected 6.0–8.0 "
+            "(Taylor evaluation 6.67; ANSI exposure buildup ~7.7)"
         )
 
     def test_lead_gt_zero_at_tau0(self) -> None:

@@ -1,7 +1,7 @@
 # RUNBOOK — PyShield-SMR
 
 > Auto-maintained. Update this file whenever scripts, modules, workflows, dependencies, or process expectations change.
-> Last updated: 2026-04-15
+> Last updated: 2026-10-18
 
 ---
 
@@ -20,12 +20,12 @@
 | Workflow engine | `pyshield_smr/workflow/` | YAML schema, runner, QA manifest |
 | HPC | `pyshield_smr/hpc/` | Parallel executor, cluster adapter |
 | CLI | `pyshield_smr/cli/` | `pyshield` command-line interface |
-| Tests | `tests/unit/` (10 files), `tests/integration/` | pytest suite + regression fixtures. On Python 3.12: 11 failed, 243 passed; integration 12 passed |
+| Tests | `tests/unit/` (10 files), `tests/integration/` | pytest suite + regression fixtures. On Python 3.12: 254 passed; integration 12 passed |
 | Examples | `examples/01_point_kernel_shielding/`, `02_monte_carlo_transmission/`, `03_activation_decay/`, `04_alarp_optimization/`, `05_smr_compartment/` | End-to-end worked analyses |
 | Nuclear data | `data/` | Cross sections, buildup factors, flux-to-dose coefficients, decay chains |
 | Docs | `docs/theory/` (7 theory docs + PHYSICS_CHANGELOG), `docs/guides/` (3 guides: GETTING_STARTED, HPC, MCNP_INTEROP) | Theory and user docs. `docs/guides/QA.md` is not in the tree |
 | Reports | `reports/templates/` | Markdown/HTML report templates |
-| Governance | `tasks/`, `RUNBOOK.md` | Process notes and `tasks/audit_process.py`. `AGENTS.md` is not in the tree, so the audit does not pass |
+| Governance | `tasks/`, `RUNBOOK.md`, `tasks/PROCESS_ARCHITECTURE.md` | Process notes and `tasks/audit_process.py`. `AGENTS.md` is not in the tree and is not required |
 
 ---
 

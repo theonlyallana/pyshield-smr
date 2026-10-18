@@ -4,6 +4,7 @@
 
 [![Python 3.10+](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![tests](https://github.com/theonlyallana/pyshield-smr/actions/workflows/tests.yml/badge.svg)](https://github.com/theonlyallana/pyshield-smr/actions/workflows/tests.yml)
 
 > **Portfolio / demonstrator project.** Implements real physics, real numerical methods, and real QA practices. Not a licensed safety-case tool — see [disclaimer](#disclaimer).
 
@@ -27,7 +28,7 @@ PyShield-SMR is structured around the full competency profile of a Radiation Phy
 | Structured technical report (Markdown + HTML) | `reports/templates/` |
 | SLURM/PBS script helpers | `pyshield_smr/hpc/scheduler.py` (`emit_slurm_script`, `emit_pbs_script`) |
 
-The workflow runner calls the point-kernel dose calculation, zone assignment, the QA manifest, and the report templates. It does not call the Monte Carlo engine, the Bateman solver, DPA, gamma heating, the detector response, the ALARP optimiser, or the UQ samplers. Those functions are in the package and can be imported directly. `pyshield emit-slurm` writes a short script and logs that SLURM generation is not implemented; it does not call `emit_slurm_script`. There is no `emit-pbs` command and no `--workers` flag.
+The workflow runner calls the point-kernel dose calculation, zone assignment, the QA manifest, and the report templates. Monte Carlo, uncertainty quantification, and ALARP optimisation are libraries only. See [Roadmap](#roadmap).
 
 ---
 
@@ -42,10 +43,10 @@ python -m venv .venv
 
 pip install -e ".[dev]"
 
-# Governance audit (13 checks; it does not currently pass — see below)
+# Governance audit (12 checks)
 python tasks/audit_process.py --verbose
 
-# Test suite (not all tests pass — see below)
+# Test suite
 pytest -q
 
 # Example 1 — Co-60 behind 5 cm lead, point-kernel dose assessment
@@ -92,6 +93,19 @@ Run a spec with `pyshield run examples/<folder>/config.yaml`. What the runner ac
 
 ---
 
+## Roadmap
+
+These exist as importable libraries. They are not called by `pyshield run`, and this change does not add a CLI command for them.
+
+| Item | Where it lives | Not done |
+|---|---|---|
+| Monte Carlo photon transport | `MonteCarloPhoton` in `pyshield_smr/transport/monte_carlo.py`; `run_histories_parallel` in `pyshield_smr/hpc/parallel.py` | The runner does not call either. Example 02 logs that Monte Carlo is not integrated and does not report a dose |
+| Uncertainty quantification | `lhs_samples` and `morris_screen` in `pyshield_smr/uq/` | The runner does not call them. A spec `uncertainty` block is skipped |
+| ALARP optimisation | `optimise_shielding` in `pyshield_smr/alarp/optimiser.py` | The runner does not call it. Example 04 reports the starting-geometry point-kernel dose |
+| Scheduler CLI | `emit_slurm_script` and `emit_pbs_script` in `pyshield_smr/hpc/scheduler.py` | `pyshield emit-slurm` writes a short placeholder and does not call `emit_slurm_script`. There is no `emit-pbs` command and no `--workers` flag |
+
+---
+
 ## Physics covered
 
 ### Transport methods
@@ -125,34 +139,29 @@ The project implements a four-layer governance model (see [`tasks/PROCESS_ARCHIT
 python tasks/audit_process.py --verbose
 ```
 
-The script defines 13 checks. On 2026-10-18 it failed 5 of them (`audit: FAIL`):
+On Python 3.12, `python tasks/audit_process.py --verbose` reported `audit: PASS (12 checks)`.
 
-- `required-files-present` — `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `docs/guides/QA.md` are not in the tree (they were deleted after the audit was written).
-- `check_architecture_links` and `check_specialist_routing` — both read `AGENTS.md` and raise `FileNotFoundError`.
-- `memory-freshness` — files under `tasks/memory/` are dated 2026-04-14 or 2026-04-15, which is older than the 180-day limit.
-- `process-state-review-date` — `tasks/process_state.md` has `next_review_due: 2026-07-14`, which is overdue.
+`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, and `docs/guides/QA.md` are not required. The specialist-routing check that read `AGENTS.md` is not run. `tasks/memory/MEMORY.md` stays dated 2026-04-14 and `tasks/memory/feedback.md` stays dated 2026-04-15; the audit locks those dates. Other memory files still have to be dated within 180 days. `tasks/process_state.md` stays at `last_reviewed: 2026-04-14` and `next_review_due: 2026-07-14`. The audit reports that the review date is overdue and does not fail for it.
 
-Eight checks passed: agent files, todo review, physics changelog, YAML schema version, data directory, tests discoverable, QA hashing helper, and the five example directories each having a `config.yaml`. There is no GitHub Actions workflow under `.github/workflows`.
+`.github/workflows/tests.yml` runs `pytest` on Python 3.12. The badge at the top points at that workflow. It was added after [run 39164454656](https://github.com/theonlyallana/pyshield-smr/actions/runs/39164454656) completed with success on commit `855fb97`.
 
 Every analysis produces a **QA manifest** — a JSON record of the code version, all nuclear-data file SHA-256 hashes, platform, runtime, and warnings — ensuring full reproducibility.
 
 ### Test coverage
 
-On Python 3.12, `pytest -q` reported **11 failed, 243 passed**. `pytest -q tests/integration` reported **12 passed**. The integration file compares four point-kernel cases with the tolerances in `tests/integration/regression_values.yaml` (5% or 10%). Example 02 is not one of those cases.
+On Python 3.12, `pytest -q` reported **254 passed**. `pytest -q tests/integration` reported **12 passed**. The integration file compares four point-kernel cases with the tolerances in `tests/integration/regression_values.yaml` (5% or 10%). The iron case expected dose is 1.65e-7 Sv/h after the buildup correction; the tolerance is still 5%. Example 02 is not one of those cases.
 
 Unit modules and what they cover:
 
 ```
 tests/unit/
   test_physics_constants.py   CODATA 2018 constants
-  test_buildup.py             B(τ=0)=1 and growth with τ. Two water cases currently fail
-  test_attenuation.py         Interpolation and unit conversion. Density scaling currently fails
-                              (Material has no attribute mu_rho_table)
+  test_buildup.py             B(τ=0)=1, growth with τ, lead and water magnitude
+  test_attenuation.py         Interpolation, unit conversion, density scaling
   test_dose.py                h*(10) linearity, 3600× unit ratio, ICRP-74 range
   test_geometry.py            SlabStack boundaries, traverse(), Sphere validation
   test_source_term.py         Co-60 two-line spectrum, Cs-137, multi-nuclide
-  test_point_kernel.py        8 of 10 tests fail: they call point_kernel_dose_rate(..., energies_MeV=...),
-                              and the function parameter is source_energies_MeV
+  test_point_kernel.py        1/r², attenuation, buildup, multi-receptor, Co-60/lead benchmark
   test_zoning.py              Zone thresholds, boundary conditions, custom thresholds
   test_yaml_config.py         YAML 1.1 float parsing (1.0e6 → float, not string)
   test_runner_smoke.py        Import paths and a point-kernel execute cycle

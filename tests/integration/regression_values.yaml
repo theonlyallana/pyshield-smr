@@ -5,8 +5,8 @@
 # tolerance. Update this file (with a PHYSICS_CHANGELOG entry) whenever a
 # deliberate physics change alters a result.
 #
-# Generated: 2026-04-15
-# Code version: v0.1.1 (post buildup sign-fix + YAML loader fix + runner position fix)
+# Generated: 2026-04-15; iron case recomputed 2026-10-18
+# Code version: v0.1.1 (buildup growth term is |alpha1|; see PHYSICS_CHANGELOG)
 # Method: point_kernel for all cases; ALARP/UQ disabled for determinism.
 #
 # Tolerance guidance:
@@ -32,12 +32,14 @@ cases:
     description: "Co-60 100 kBq at -0.1 m; 5 cm Fe slab; receptor at 0.1 m"
     spec: "examples/03_activation_decay/config.yaml"
     engine: point_kernel
-    expected_dose_rate_sv_per_h: 1.38e-7
+    expected_dose_rate_sv_per_h: 1.65e-7
     tolerance_percent: 5.0
     zone: uncontrolled
     notes: >
       Demonstrates activation-product source term. Geometry: source at z=-0.1 m,
       receptor at z=+0.1 m (0.2 m source-to-receptor). Iron buildup factors applied.
+      Recomputed 2026-10-18 after the growth coefficient became |alpha1|
+      (computed 1.652e-7 Sv/h). Tolerance is still 5%.
 
   point_kernel_cs137_lead_5cm:
     description: "Cs-137 10 MBq at origin; 5 cm Pb slab; receptor at 1 m"
